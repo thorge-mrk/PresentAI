@@ -1,20 +1,14 @@
+"use client";
 import { useState, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { notify } from "@/components/ui/sonner";
-import { clearPresentationData } from "@/store/slices/presentationGeneration";
-import { PresentationGenerationApi } from "../../services/api/presentation-generation";
+import { clearPresentationData, setPresentationData } from "@/store/slices/presentationGeneration";
 import { LoadingState, TABS } from "../types/index";
 import { TemplateLayoutsWithSettings } from "@/app/presentation-templates/utils";
-import { getCustomTemplateDetails } from "@/app/hooks/useCustomTemplates";
-import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import { approveOutline, slidesToPresentationData } from "@/lib/presentation-api";
 
-const DEFAULT_LOADING_STATE: LoadingState = {
-  message: "",
-  isLoading: false,
-  showProgress: false,
-  duration: 0,
-};
+const DEFAULT_LOADING: LoadingState = { message: "", isLoading: false, showProgress: false, duration: 0 };
 
 export const usePresentationGeneration = (
   presentationId: string | null,
@@ -24,186 +18,29 @@ export const usePresentationGeneration = (
 ) => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const pathname = usePathname();
-  const [loadingState, setLoadingState] = useState<LoadingState>(
-    DEFAULT_LOADING_STATE
-  );
-
-  const validateInputs = useCallback(() => {
-    if (!outlines || outlines.length === 0) {
-      notify.warning(
-        "Outlines not ready",
-        "Please wait for your outlines to finish generating before continuing."
-      );
-      return false;
-    }
-
-    if (!selectedTemplate) {
-      notify.warning(
-        "Layout not selected",
-        "Choose a layout group before generating your presentation."
-      );
-      return false;
-    }
-
-    return true;
-  }, [outlines, selectedTemplate]);
-
-  const clearTheme = () => {
-    const element = document.getElementById("presentation-page");
-    if (!element) return;
-    element.style.removeProperty("--primary-color");
-    element.style.removeProperty("--background-color");
-    element.style.removeProperty("--card-color");
-    element.style.removeProperty("--stroke");
-    element.style.removeProperty("--primary-text");
-    element.style.removeProperty("--background-text");
-    element.style.removeProperty("--graph-0");
-    element.style.removeProperty("--graph-1");
-    element.style.removeProperty("--graph-2");
-    element.style.removeProperty("--graph-3");
-    element.style.removeProperty("--graph-4");
-    element.style.removeProperty("--graph-5");
-    element.style.removeProperty("--graph-6");
-    element.style.removeProperty("--graph-7");
-    element.style.removeProperty("--graph-8");
-    element.style.removeProperty("--graph-9");
-  };
+  const [loadingState, setLoadingState] = useState<LoadingState>(DEFAULT_LOADING);
 
   const handleSubmit = useCallback(async () => {
-    if (!selectedTemplate) {
-      setActiveTab(TABS.LAYOUTS);
+    if (!outlines || outlines.length === 0) {
+      notify.warning("Gliederung nicht bereit", "Bitte warte bis die Gliederung fertig generiert ist.");
       return;
     }
-    if (!validateInputs()) return;
+    if (!presentationId) return;
 
-    const selectedTemplateId =
-      typeof selectedTemplate === "string"
-        ? selectedTemplate
-        : selectedTemplate?.id || null;
-    const selectedTemplateType =
-      typeof selectedTemplate === "string" ? "custom" : "built_in";
-    const selectedTemplateName =
-      typeof selectedTemplate === "string"
-        ? null
-        : selectedTemplate?.name || null;
-    const selectedTemplateLayoutCount =
-      typeof selectedTemplate === "string"
-        ? null
-        : selectedTemplate?.layouts?.length || 0;
-
-    trackEvent(MixpanelEvent.Outline_Presentation_Generation_Started, {
-      pathname,
-      presentation_id: presentationId,
-      outline_count: outlines?.length || 0,
-      template_id: selectedTemplateId,
-      template_type: selectedTemplateType,
-      template_name: selectedTemplateName,
-      template_layout_count: selectedTemplateLayoutCount,
-    });
-
-    setLoadingState({
-      message: "Generating presentation data...",
-      isLoading: true,
-      showProgress: true,
-      duration: 30,
-    });
+    setLoadingState({ message: "Präsentation wird generiert...", isLoading: true, showProgress: true, duration: 60 });
 
     try {
-      let layout;
-
-      // Check if it's a custom template (string = presentationId)
-      if (typeof selectedTemplate === "string") {
-        setLoadingState({
-          message: "Loading custom template...",
-          isLoading: true,
-          showProgress: true,
-          duration: 30,
-        });
-
-        // Fetch custom template details using the shared function
-        const customTemplateDetail = await getCustomTemplateDetails(
-          selectedTemplate
-        );
-
-        if (
-          !customTemplateDetail ||
-          customTemplateDetail.layouts.length === 0
-        ) {
-          notify.error("Template error", "Failed to load custom template layouts.");
-          return;
-        }
-
-        setLoadingState({
-          message: "Generating presentation data...",
-          isLoading: true,
-          showProgress: true,
-          duration: 30,
-        });
-
-        layout = {
-          name: customTemplateDetail.id,
-          ordered: false,
-          icon_weight: "bold",
-          slides: customTemplateDetail.layouts.map((compiledLayout) => ({
-            id: customTemplateDetail.id.startsWith("custom-")
-              ? `${customTemplateDetail.id}:${compiledLayout.layoutId}`
-              : `custom-${customTemplateDetail.id}:${compiledLayout.layoutId}`,
-            name: compiledLayout.layoutName,
-            description: compiledLayout.layoutDescription,
-            templateID: customTemplateDetail.id,
-            templateName: customTemplateDetail.name,
-            json_schema: compiledLayout.schemaJSON,
-          })),
-        };
-      } else {
-        // Built-in template
-        layout = {
-          name: selectedTemplate.id,
-          ordered: false,
-          icon_weight: selectedTemplate.settings?.icon_weight || "bold",
-          slides: selectedTemplate.layouts.map((layoutItem: any) => ({
-            id: layoutItem.layoutId,
-            name: layoutItem.layoutName,
-            description: layoutItem.layoutDescription,
-            templateID: selectedTemplate.id,
-            templateName: selectedTemplate.name,
-            json_schema: layoutItem.schemaJSON,
-          })),
-        };
-      }
-
-      const response = await PresentationGenerationApi.presentationPrepare({
-        presentation_id: presentationId,
-        outlines: outlines,
-        layout: layout,
-      });
-
-      if (response) {
-        dispatch(clearPresentationData());
-        clearTheme();
-        router.replace(
-          `/presentation?id=${presentationId}&stream=true&type=standard`
-        );
-      }
-    } catch (error: any) {
-      console.error("Error In Presentation Generation(prepare).", error);
-      notify.error(
-        "Generation error",
-        error.message || "Error in presentation generation."
-      );
+      const { presentation, slides } = await approveOutline(presentationId);
+      const presData = slidesToPresentationData(presentation, slides);
+      dispatch(clearPresentationData());
+      dispatch(setPresentationData(presData as any));
+      router.replace(`/presentation?id=${presentationId}`);
+    } catch (err: any) {
+      notify.error("Generierungsfehler", err.message || "Fehler bei der Präsentationsgenerierung");
     } finally {
-      setLoadingState(DEFAULT_LOADING_STATE);
+      setLoadingState(DEFAULT_LOADING);
     }
-  }, [
-    validateInputs,
-    presentationId,
-    outlines,
-    dispatch,
-    router,
-    selectedTemplate,
-    pathname,
-  ]);
+  }, [presentationId, outlines, dispatch, router]);
 
   return { loadingState, handleSubmit };
 };
