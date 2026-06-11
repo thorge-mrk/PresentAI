@@ -64,8 +64,8 @@ const SlideContent = ({
         editPrompt
       );
 
-      if (response) {
-        dispatch(updateSlide({ index: slide.index, slide: response }));
+      if (response !== undefined) {
+        dispatch(updateSlide({ index: slide.index, slide: response as any }));
         trackEvent(MixpanelEvent.Presentation_Slide_Updated, {
           pathname,
           presentation_id: presentationId,

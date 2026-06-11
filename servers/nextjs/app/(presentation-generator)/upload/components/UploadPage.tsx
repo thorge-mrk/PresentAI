@@ -1,425 +1,162 @@
-/**
- * UploadPage Component
- * 
- * This component handles the presentation generation upload process, allowing users to:
- * - Configure presentation settings (slides, language)
- * - Input prompts
- * - Upload supporting documents
- * 
- * @component
- */
-
 "use client";
 import React, { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
 import { clearOutlines, setPresentationId } from "@/store/slices/presentationGeneration";
-import { PromptInput } from "./PromptInput";
-import { LanguageType, PresentationConfig, ToneType, VerbosityType } from "../type";
-import SupportingDoc from "./SupportingDoc";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
 import { notify } from "@/components/ui/sonner";
-import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import Wrapper from "@/components/Wrapper";
-import { setPptGenUploadState } from "@/store/slices/presentationGenUpload";
-import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { ConfigurationSelects } from "./ConfigurationSelects";
-import { RootState } from "@/store/store";
-import { ImagesApi } from "../../services/api/images";
-import CurrentConfig from "./CurrentConfig";
-import { LLMConfig } from "@/types/llm_config";
+import { generateOutline } from "@/lib/presentation-api";
+import { ChevronRight, BookOpen, Sparkles } from "lucide-react";
 
-const STOCK_IMAGE_PROVIDERS = new Set(["pexels", "pixabay"]);
-const FILE_TYPE_WORD = new Set([".doc", ".docx", ".docm", ".odt", ".rtf"]);
-const FILE_TYPE_PRESENTATION = new Set([".ppt", ".pptx", ".pptm", ".odp"]);
-const FILE_TYPE_SPREADSHEET = new Set([".xls", ".xlsx", ".xlsm", ".ods", ".csv", ".tsv"]);
-const FILE_TYPE_IMAGE = new Set([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".svg"]);
-const FILE_TYPE_PDF = new Set([".pdf"]);
-const FILE_TYPE_TEXT = new Set([".txt"]);
+const GRADE_LEVELS = [
+  "1.-4. Klasse (Grundschule)",
+  "5.-7. Klasse",
+  "8.-10. Klasse",
+  "Oberstufe (11.-13. Klasse)",
+  "Berufsschule",
+  "Universität / Hochschule",
+  "Erwachsenenbildung",
+];
 
-// Types for loading state
-interface LoadingState {
-  isLoading: boolean;
-  message: string;
-  duration?: number;
-  showProgress?: boolean;
-  extra_info?: string;
-}
+const TEXT_DENSITY_OPTIONS = [
+  { value: "low" as const, label: "Wenig Text", desc: "Stichpunkte, prägnant" },
+  { value: "compact" as const, label: "Kompakt", desc: "Ausgewogen, informativ" },
+  { value: "high" as const, label: "Viel Text", desc: "Ausführlich, detailliert" },
+];
 
-const getFileExtension = (fileName: string): string => {
-  const index = fileName.lastIndexOf(".");
-  if (index < 0) return "";
-  return fileName.slice(index).toLowerCase();
-};
-
-const getFileCategory = (file: File): string => {
-  const extension = getFileExtension(file.name || "");
-  if (FILE_TYPE_WORD.has(extension)) return "word";
-  if (FILE_TYPE_PRESENTATION.has(extension)) return "presentation";
-  if (FILE_TYPE_SPREADSHEET.has(extension)) return "spreadsheet";
-  if (FILE_TYPE_IMAGE.has(extension) || (file.type || "").startsWith("image/")) return "image";
-  if (FILE_TYPE_PDF.has(extension) || file.type === "application/pdf") return "pdf";
-  if (FILE_TYPE_TEXT.has(extension) || file.type === "text/plain") return "text";
-  return "other";
-};
-
-const getSelectedTextModel = (config?: LLMConfig): string => {
-  if (!config) return "";
-  switch (config.LLM) {
-    case "openai":
-      return config.OPENAI_MODEL || "";
-    case "google":
-      return config.GOOGLE_MODEL || "";
-    case "vertex":
-      return config.VERTEX_MODEL || "";
-    case "azure":
-      return config.AZURE_OPENAI_MODEL || "";
-    case "bedrock":
-      return config.BEDROCK_MODEL || "";
-    case "openrouter":
-      return config.OPENROUTER_MODEL || "";
-    case "fireworks":
-      return config.FIREWORKS_MODEL || "";
-    case "together":
-      return config.TOGETHER_MODEL || "";
-    case "cerebras":
-      return config.CEREBRAS_MODEL || "";
-    case "litellm":
-      return config.LITELLM_MODEL || "";
-    case "lmstudio":
-      return config.LMSTUDIO_MODEL || "";
-    case "anthropic":
-      return config.ANTHROPIC_MODEL || "";
-    case "ollama":
-      return config.OLLAMA_MODEL || "";
-    case "custom":
-      return config.CUSTOM_MODEL || "";
-    case "codex":
-      return config.CODEX_MODEL || "";
-    default:
-      return "";
-  }
-};
-
-const getSelectedImageQuality = (config?: LLMConfig): string => {
-  if (!config) return "";
-  if (config.IMAGE_PROVIDER === "dall-e-3") return config.DALL_E_3_QUALITY || "";
-  if (config.IMAGE_PROVIDER === "gpt-image-1.5") return config.GPT_IMAGE_1_5_QUALITY || "";
-  return "";
-};
-
-const UploadPage = () => {
+export default function UploadPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const dispatch = useDispatch();
-  const llmConfig = useSelector((state: RootState) => state.userConfig.llm_config);
 
-  const [files, setFiles] = useState<File[]>([]);
-  const [config, setConfig] = useState<PresentationConfig>({
-    slides: null,
-    language: LanguageType.Auto,
-    prompt: "",
-    tone: ToneType.Default,
-    verbosity: VerbosityType.Standard,
-    instructions: "",
-    includeTableOfContents: false,
-    includeTitleSlide: false,
-    webSearch: false,
-  });
+  const [topic, setTopic] = useState("");
+  const [gradeLevel, setGradeLevel] = useState(GRADE_LEVELS[2]);
+  const [textDensity, setTextDensity] = useState<"low" | "compact" | "high">("compact");
+  const [slideCount, setSlideCount] = useState(10);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [loadingState, setLoadingState] = useState<LoadingState>({
-    isLoading: false,
-    message: "",
-    duration: 4,
-    showProgress: false,
-    extra_info: "",
-  });
-
-  const getUploadSnapshotProps = () => {
-    const trimmedPrompt = config.prompt.trim();
-    const trimmedInstructions = (config.instructions || "").trim();
-    const attachmentCategories = Array.from(new Set(files.map(getFileCategory))).sort();
-    const imageGenerationEnabled = !llmConfig?.DISABLE_IMAGE_GENERATION;
-    const parsedSlides =
-      config.slides && /^\d+$/.test(config.slides) ? Number(config.slides) : null;
-
-    return {
-      pathname,
-      generation_path: files.length > 0 ? "documents" : "prompt_only",
-      slides_selected: parsedSlides,
-      slides_mode: config.slides ? "selected" : "auto",
-      language: config.language || "",
-      tone: config.tone,
-      verbosity: config.verbosity,
-      include_table_of_contents: !!config.includeTableOfContents,
-      include_title_slide: !!config.includeTitleSlide,
-      web_search: !!config.webSearch,
-      has_prompt: Boolean(trimmedPrompt),
-      prompt_char_count: trimmedPrompt.length,
-      prompt_word_count: trimmedPrompt ? trimmedPrompt.split(/\s+/).filter(Boolean).length : 0,
-      has_instructions: Boolean(trimmedInstructions),
-      instructions_char_count: trimmedInstructions.length,
-      has_attachments: files.length > 0,
-      attachments_count: files.length,
-      attachment_categories: attachmentCategories.join(","),
-      text_provider: llmConfig?.LLM || "",
-      text_model: getSelectedTextModel(llmConfig),
-      image_generation_enabled: imageGenerationEnabled,
-      image_provider: imageGenerationEnabled ? (llmConfig?.IMAGE_PROVIDER || "") : "disabled",
-      image_quality: imageGenerationEnabled ? getSelectedImageQuality(llmConfig) : "",
-    };
-  };
-
-  const trackUploadValidationFailure = (reason: string) => {
-    trackEvent(MixpanelEvent.Upload_Configuration_Invalid, {
-      ...getUploadSnapshotProps(),
-      reason,
-    });
-  };
-
-  const handleConfigChange = (key: keyof PresentationConfig, value: unknown) => {
-    setConfig((prev) => ({ ...prev, [key]: value } as PresentationConfig));
-  };
-
-  const ensureStockImageProviderReady = async (): Promise<boolean> => {
-    if (llmConfig?.DISABLE_IMAGE_GENERATION) {
-      return true;
+  const handleGenerate = async () => {
+    if (!topic.trim()) {
+      notify.warning("Thema fehlt", "Bitte gib ein Thema für deine Präsentation ein.");
+      return;
     }
-
-    const selectedProvider = (llmConfig?.IMAGE_PROVIDER || "").toLowerCase();
-    if (!STOCK_IMAGE_PROVIDERS.has(selectedProvider)) {
-      return true;
-    }
-
-    try {
-      const providerApiKey =
-        selectedProvider === "pexels"
-          ? llmConfig?.PEXELS_API_KEY
-          : llmConfig?.PIXABAY_API_KEY;
-      await ImagesApi.searchStockImages("business", 1, {
-        provider: selectedProvider,
-        apiKey: providerApiKey,
-        strictApiKey: true,
-      });
-      return true;
-    } catch (error: any) {
-      notify.error(
-        "Image provider unavailable",
-        error?.message ||
-        `Unable to reach ${selectedProvider} right now. Please check your API key/settings and try again.`
-      );
-      return false;
-    }
-  };
-
-  /**
-   * Validates the current configuration and files
-   * @returns boolean indicating if the configuration is valid
-   */
-  const validateConfiguration = (): boolean => {
-    if (!config.language) {
-      trackUploadValidationFailure("language_missing");
-      notify.warning("Language required", "Please select a language.");
-      return false;
-    }
-
-    if (files.length > 0 && config.language === LanguageType.Auto) {
-      trackUploadValidationFailure("language_auto_with_documents");
-      notify.warning("Language required", "Please choose a language before processing uploaded documents.");
-      return false;
-    }
-
-    if (!config.prompt.trim() && files.length === 0) {
-      trackUploadValidationFailure("prompt_or_document_missing");
-      notify.warning("Input required", "Provide a prompt or upload at least one document.");
-      return false;
-    }
-    return true;
-  };
-
-  /**
-   * Handles the presentation generation process
-   */
-  const handleGeneratePresentation = async () => {
-    if (!validateConfiguration()) return;
-    trackEvent(MixpanelEvent.Upload_Generation_Started, getUploadSnapshotProps());
-
-
-    const isStockProviderReady = await ensureStockImageProviderReady();
-    if (!isStockProviderReady) {
-      trackUploadValidationFailure("stock_image_provider_unreachable");
+    if (slideCount < 1 || slideCount > 25) {
+      notify.warning("Ungültige Folienanzahl", "Bitte wähle eine Anzahl zwischen 1 und 25.");
       return;
     }
 
+    setIsLoading(true);
+    dispatch(clearOutlines());
+
     try {
-      const hasUploadedAssets = files.length > 0;
-
-      if (hasUploadedAssets) {
-        await handleDocumentProcessing();
-      } else {
-        await handleDirectPresentationGeneration();
-      }
-    } catch (error) {
-      handleGenerationError(error);
+      const { presentationId, outlines } = await generateOutline({ topic, gradeLevel, textDensity, slideCount });
+      dispatch(setPresentationId(presentationId));
+      router.push(`/outline?id=${presentationId}`);
+    } catch (err: any) {
+      notify.error("Fehler", err.message || "Präsentation konnte nicht erstellt werden.");
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  /**
-   * Handles document processing
-   */
-  const handleDocumentProcessing = async () => {
-    setLoadingState({
-      isLoading: true,
-      message: "Processing documents...",
-      showProgress: true,
-      duration: 90,
-      extra_info: files.length > 0 ? "It might take a few minutes for large documents." : "",
-    });
-
-    let documents = [];
-
-    if (files.length > 0) {
-      const uploadResponse = await PresentationGenerationApi.uploadDoc(files);
-      documents = uploadResponse;
-    }
-
-    const selectedLanguage = config?.language ?? "";
-
-    const promises: Promise<any>[] = [];
-
-    if (documents.length > 0) {
-      promises.push(
-        PresentationGenerationApi.decomposeDocuments(
-          documents,
-          selectedLanguage
-        )
-      );
-    }
-    const responses = await Promise.all(promises);
-    dispatch(setPptGenUploadState({
-      config,
-      files: responses,
-    }));
-    dispatch(clearOutlines())
-    trackEvent(MixpanelEvent.Upload_Documents_Processed, {
-      ...getUploadSnapshotProps(),
-      uploaded_documents_count: documents.length,
-      decompose_job_count: responses.length,
-      destination: "/documents-preview",
-    });
-    trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/documents-preview" });
-    router.push("/documents-preview");
-  };
-
-  /**
-   * Handles direct presentation generation without documents
-   */
-  const handleDirectPresentationGeneration = async () => {
-    setLoadingState({
-      isLoading: true,
-      message: "Generating outlines...",
-      showProgress: true,
-      duration: 30,
-    });
-
-    const selectedLanguage = config?.language ?? "";
-
-    // Use the first available layout group for direct generation
-    const createResponse = await PresentationGenerationApi.createPresentation({
-      content: config?.prompt ?? "",
-      n_slides: config?.slides ? parseInt(config.slides, 10) : null,
-      file_paths: [],
-      language: selectedLanguage,
-      tone: config?.tone,
-      verbosity: config?.verbosity,
-      instructions: config?.instructions || null,
-      include_table_of_contents: !!config?.includeTableOfContents,
-      include_title_slide: !!config?.includeTitleSlide,
-      web_search: !!config?.webSearch,
-    });
-
-
-    dispatch(setPresentationId(createResponse.id));
-    dispatch(clearOutlines())
-    trackEvent(MixpanelEvent.Upload_Outline_Generation_Requested, {
-      ...getUploadSnapshotProps(),
-      presentation_id: createResponse.id,
-      destination: "/outline",
-    });
-    trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/outline" });
-    router.push("/outline");
-  };
-
-  /**
-   * Handles errors during presentation generation
-   */
-  const handleGenerationError = (error: any) => {
-    console.error("Error in upload page", error);
-    setLoadingState({
-      isLoading: false,
-      message: "",
-      duration: 0,
-      showProgress: false,
-    });
-    notify.error(
-      "Generation failed",
-      error.message || "Something went wrong while starting your presentation."
-    );
   };
 
   return (
-    <Wrapper className="pb-10 lg:max-w-[65%] xl:max-w-[60%]">
-      <OverlayLoader
-        show={loadingState.isLoading}
-        text={loadingState.message}
-        showProgress={loadingState.showProgress}
-        duration={loadingState.duration}
-        extra_info={loadingState.extra_info}
-      />
-      <div className="rounded-2xl " >
-        <div className="flex flex-col gap-4 md:items-center md:flex-row justify-between px-4 ">
-          <CurrentConfig />
-          <ConfigurationSelects
-            config={config}
-            onConfigChange={handleConfigChange}
+    <Wrapper className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <OverlayLoader show={isLoading} text="Recherche & Gliederung wird erstellt..." showProgress duration={30} />
+
+      <div className="w-full max-w-xl space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Sparkles className="w-7 h-7 text-violet-600" />
+            <span className="text-2xl font-bold text-gray-900">Present AI</span>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Neue Präsentation</h1>
+          <p className="text-gray-500">Powered by Google Gemini · Bilder von Unsplash & Pexels</p>
+        </div>
+
+        {/* Topic */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Thema <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="z.B. Die Französische Revolution, Klimawandel, Photosynthese …"
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none transition"
+            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
           />
         </div>
 
-        <div className="p-4 ">
+        {/* Grade Level */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            <BookOpen className="inline w-4 h-4 mr-1 text-violet-500" />
+            Klassenstufe
+          </label>
+          <select
+            value={gradeLevel}
+            onChange={(e) => setGradeLevel(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none transition bg-white"
+          >
+            {GRADE_LEVELS.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+        </div>
 
-          <div className="relative">
-            <PromptInput
-              value={config.prompt}
-              onChange={(value) => handleConfigChange("prompt", value)}
-
-            />
+        {/* Text Density */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">Textmenge</label>
+          <div className="grid grid-cols-3 gap-3">
+            {TEXT_DENSITY_OPTIONS.map(({ value, label, desc }) => (
+              <button
+                key={value}
+                onClick={() => setTextDensity(value)}
+                className={`rounded-xl border-2 p-3 text-left transition ${
+                  textDensity === value
+                    ? "border-violet-500 bg-violet-50 text-violet-700"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <div className="font-semibold text-sm">{label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{desc}</div>
+              </button>
+            ))}
           </div>
         </div>
-        <div className="p-4 ">
-          <h3 className="text-sm font-medium text-[#333333] mb-2">Attachments (optional)</h3>
-          <SupportingDoc
-            files={[...files]}
-            onFilesChange={setFiles}
+
+        {/* Slide Count */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Folienanzahl: <span className="text-violet-600 font-bold">{slideCount}</span>
+          </label>
+          <input
+            type="range"
+            min={3}
+            max={25}
+            value={slideCount}
+            onChange={(e) => setSlideCount(Number(e.target.value))}
+            className="w-full accent-violet-500"
           />
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>3 Folien</span>
+            <span>25 Folien</span>
+          </div>
         </div>
 
-        <div className="p-4">
-          <Button
-            onClick={handleGeneratePresentation}
-            style={{
-              background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)"
-            }}
-            className="w-fit mr-0 ml-auto rounded-[28px] flex items-center justify-center py-5 px-4  text-[#101323] font-syne font-semibold text-xs  "
-          >
-            <span>Get Started</span>
-            <ChevronRight className="!w-5 !h-5 " />
-          </Button>
-        </div>
+        {/* Submit */}
+        <Button
+          onClick={handleGenerate}
+          disabled={isLoading || !topic.trim()}
+          className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-base transition disabled:opacity-50"
+        >
+          Gliederung erstellen
+          <ChevronRight className="ml-2 w-5 h-5" />
+        </Button>
       </div>
     </Wrapper>
   );
-};
-
-export default UploadPage;
+}

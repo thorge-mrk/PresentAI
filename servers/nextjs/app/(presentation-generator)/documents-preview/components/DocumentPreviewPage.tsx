@@ -165,7 +165,7 @@ const DocumentsPreviewPage: React.FC = () => {
         }
       );
 
-      dispatch(setPresentationId(createResponse.id));
+      dispatch(setPresentationId((createResponse as any)?.id ?? ""));
       trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/outline" });
       router.replace("/outline");
     } catch (error: any) {

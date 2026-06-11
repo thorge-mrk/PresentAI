@@ -282,9 +282,9 @@ const ImageEditor = ({
       trackEvent(MixpanelEvent.ImageEditor_GenerateImage_API_Call);
       const response = await PresentationGenerationApi.generateImage({
         prompt: prompt,
-      });
+      }) as any;
 
-      setPreviewImages(resolveEditorImageSource(response));
+      if (response) setPreviewImages(resolveEditorImageSource(response));
     } catch (err: any) {
       console.error("Error in image generation", err);
       setError(err.message || "Failed to generate image. Please try again.");
