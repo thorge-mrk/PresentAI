@@ -1,7 +1,5 @@
-import AuthGate from "@/components/Auth/AuthGate";
+import { redirect } from "next/navigation";
 
-const page = () => {
-    return <AuthGate />;
-};
-
-export default page;
+export default function Page() {
+  redirect("/upload");
+}

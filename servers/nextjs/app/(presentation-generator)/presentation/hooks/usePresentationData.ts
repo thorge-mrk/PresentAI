@@ -2,12 +2,8 @@ import { useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { notify } from "@/components/ui/sonner";
 import { setPresentationData } from "@/store/slices/presentationGeneration";
-import { DashboardApi } from '../../services/api/dashboard';
 import { clearHistory } from "@/store/slices/undoRedoSlice";
-import { applyPresentationThemeToElement } from "../utils/applyPresentationThemeDom";
-import { normalizeBackendAssetUrls } from "@/utils/api";
-import { useFontLoader } from "../../hooks/useFontLoad";
-
+import { getPresentation, slidesToPresentationData } from "@/lib/presentation-api";
 
 export const usePresentationData = (
   presentationId: string,
@@ -18,24 +14,14 @@ export const usePresentationData = (
 
   const fetchUserSlides = useCallback(async (options?: { clearHistory?: boolean }) => {
     try {
-      const data = await DashboardApi.getPresentation(presentationId);
-      const normalizedData = normalizeBackendAssetUrls(data);
+      const { presentation, slides } = await getPresentation(presentationId);
+      const presData = slidesToPresentationData(presentation, slides);
 
-
-      if (normalizedData) {
-        dispatch(setPresentationData(normalizedData));
-        if (options?.clearHistory ?? true) {
-          dispatch(clearHistory());
-        }
-        setLoading(false);
+      dispatch(setPresentationData(presData as any));
+      if (options?.clearHistory ?? true) {
+        dispatch(clearHistory());
       }
-      if (normalizedData.fonts) {
-        useFontLoader(normalizedData.fonts);
-      }
-      if (normalizedData?.theme) {
-        const el = document.getElementById("presentation-slides-wrapper");
-        applyPresentationThemeToElement(el, normalizedData.theme);
-      }
+      setLoading(false);
     } catch (error) {
       setError(true);
       notify.error("Failed to load presentation", "The presentation could not be loaded. Please try again.");

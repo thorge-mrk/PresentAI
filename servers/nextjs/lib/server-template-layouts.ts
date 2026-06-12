@@ -2,7 +2,6 @@ import fs from "fs/promises";
 import path from "path";
 
 import { compileTemplateSchema } from "@/lib/compile-template-schema";
-import { getFastApiAuthHeaders, getFastApiBaseUrl } from "@/lib/fastapi-internal";
 
 export type BuiltinLayoutSlide = {
   id: string;
@@ -165,53 +164,4 @@ export function buildCustomTemplateLayoutPayload(
     icon_weight: DEFAULT_ICON_WEIGHT,
     slides,
   };
-}
-
-type FastApiTemplateLayoutsResponse = {
-  layouts?: Array<{
-    layout_id: string;
-    layout_name: string;
-    layout_code: string;
-  }>;
-};
-
-/**
- * Fetch custom template slide code from FastAPI and compile (for `/api/template?group=custom-*`).
- */
-export async function buildCustomTemplateLayoutPayloadFromApi(
-  group: string,
-): Promise<{
-  name: string;
-  ordered: boolean;
-  icon_weight: string;
-  slides: BuiltinLayoutSlide[];
-} | null> {
-  if (!group.startsWith("custom-")) {
-    return null;
-  }
-
-  const url = `${getFastApiBaseUrl()}/api/v1/ppt/template/${encodeURIComponent(group)}/layouts`;
-  const response = await fetch(url, {
-    headers: getFastApiAuthHeaders(),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const data = (await response.json()) as FastApiTemplateLayoutsResponse;
-  const layouts = data.layouts ?? [];
-  if (layouts.length === 0) {
-    return null;
-  }
-
-  return buildCustomTemplateLayoutPayload(
-    group,
-    layouts.map((layout) => ({
-      layout_id: layout.layout_id,
-      layout_name: layout.layout_name,
-      layout_code: layout.layout_code,
-    })),
-  );
 }

@@ -29,7 +29,6 @@ import LoadingState from "./LoadingState";
 import { applyPresentationThemeToElement } from "../utils/applyPresentationThemeDom";
 
 import PresentationHeader from "./PresentationHeader";
-import Chat from "./Chat";
 
 const PresentationPage: React.FC<PresentationPageProps> = ({
   presentation_id,
@@ -352,16 +351,6 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
                 )}
               </div>
             </div>
-          </div>
-          <div className="w-full max-w-[370px] h-full shrink-0 self-start sticky top-0">
-            <Chat
-              presentationId={presentation_id}
-              currentSlide={selectedSlide}
-              onPresentationChanged={handlePresentationChanged}
-              onChatSendingStateChange={handleChatSendingStateChange}
-              onFollowModeChange={setIsFollowModeEnabled}
-              onAgentSlideFocus={handleAgentSlideFocus}
-            />
           </div>
         </div>
       </div>

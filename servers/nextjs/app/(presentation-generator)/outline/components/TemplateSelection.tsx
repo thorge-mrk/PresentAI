@@ -5,11 +5,6 @@ import { TemplateLayoutsWithSettings } from "@/app/presentation-templates/utils"
 import { templates } from "@/app/presentation-templates";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CustomTemplates, useCustomTemplateSummaries } from "@/app/hooks/useCustomTemplates";
-import { Loader2 } from "lucide-react";
-
-import CreateCustomTemplate from "../../(dashboard)/templates/components/CreateCustomTemplate";
-import { CustomTemplateCard } from "./CustomTemplateCard";
 import {
   TemplatePreviewStage,
   LayoutsBadge,
@@ -76,57 +71,15 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(function Templa
     }
   }, []);
 
-  const { templates: customTemplates, loading: customLoading } = useCustomTemplateSummaries();
-
-  const handleCustomSelect = useCallback(
-    (template: TemplateLayoutsWithSettings | string) => onSelectTemplate(template),
-    [onSelectTemplate]
-  );
-
   const handleBuiltInSelect = useCallback(
     (template: TemplateLayoutsWithSettings) => onSelectTemplate(template),
     [onSelectTemplate]
-  );
-
-  const selectedCustomId = useMemo(
-    () => (typeof selectedTemplate === "string" ? selectedTemplate : null),
-    [selectedTemplate]
   );
 
   const selectedBuiltInId = useMemo(
     () => (typeof selectedTemplate !== "string" ? selectedTemplate?.id ?? null : null),
     [selectedTemplate]
   );
-
-  const customTemplateCards = useMemo(() => {
-    if (customLoading) {
-      return (
-        <div className="flex items-center justify-center py-12 font-syne">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          <span className="ml-3 text-gray-600">Loading custom templates...</span>
-        </div>
-      );
-    }
-    if (customTemplates.length === 0) {
-      return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <CreateCustomTemplate />
-        </div>
-      );
-    }
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {customTemplates.map((template: CustomTemplates) => (
-          <CustomTemplateCard
-            key={template.id}
-            template={template}
-            onSelectTemplate={handleCustomSelect}
-            selectedTemplate={selectedCustomId}
-          />
-        ))}
-      </div>
-    );
-  }, [customLoading, customTemplates, handleCustomSelect, selectedCustomId]);
 
   const builtInTemplateCards = useMemo(
     () =>
@@ -144,13 +97,7 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(function Templa
   return (
     <div className="space-y-[30px] mb-4">
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-gray-900 font-syne">Custom</h3>
-        </div>
-        {customTemplateCards}
-      </div>
-      <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-3 font-syne">In Built</h3>
+        <h3 className="text-base font-semibold text-gray-900 mb-3 font-syne">Vorlagen</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {builtInTemplateCards}
         </div>

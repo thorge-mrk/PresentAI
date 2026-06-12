@@ -2,7 +2,7 @@
  * Presentation generation API — now backed by Supabase Edge Functions.
  * The FastAPI backend has been removed; all calls go directly to Supabase.
  */
-import { searchImages as edgeSearchImages, searchIcons as edgeSearchIcons } from "@/lib/presentation-api";
+import { searchImages as edgeSearchImages, searchIcons as edgeSearchIcons, updateSlide as edgeUpdateSlide } from "@/lib/presentation-api";
 import { IconSearch, ImageSearch } from "./params";
 
 export class PresentationGenerationApi {
@@ -46,10 +46,19 @@ export class PresentationGenerationApi {
     throw new Error("AI slide re-editing not yet implemented in cloud version.");
   }
 
-  // Auto-save: patch slide content in Supabase
-  static async updatePresentationContent(_body: any) {
-    // No-op in V1: Redux state is the source of truth.
-    // For persistence, call updateSlide() from presentation-api.ts directly.
+  // Auto-save: persist all slide contents to Supabase (called debounced)
+  static async updatePresentationContent(body: any) {
+    const slides: any[] = body?.slides || [];
+    await Promise.all(
+      slides
+        .filter((s) => s?.id)
+        .map((s) =>
+          edgeUpdateSlide(s.id, {
+            content: s.content,
+            speaker_notes: s.speaker_note ?? undefined,
+          }).catch((e) => console.warn(`Auto-save failed for slide ${s.id}:`, e?.message))
+        )
+    );
     return { ok: true };
   }
 
