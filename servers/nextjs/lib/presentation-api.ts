@@ -89,6 +89,26 @@ export async function updateSlide(
   return callEdgeFunction("update-slide", { method: "PATCH", body: { slideId, updates } });
 }
 
+// Persist edited slides back to the DB (autosave from the editor)
+export async function savePresentation(
+  presentationId: string,
+  slides: Array<{
+    id: string;
+    index?: number;
+    slide_index?: number;
+    content?: Record<string, unknown>;
+    title?: string | null;
+    speaker_note?: string | null;
+    speaker_notes?: string | null;
+    layout?: string | null;
+    layout_group?: string | null;
+  }>
+): Promise<{ ok: boolean; count: number }> {
+  return callEdgeFunction("save-presentation", {
+    body: { presentationId, slides },
+  });
+}
+
 // Image search via Unsplash + Pexels
 export async function searchImages(
   query: string,

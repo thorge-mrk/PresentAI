@@ -229,12 +229,32 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pptx", safePptxTitle);
       } else {
-        const response = await fetch("/api/export-presentation", {
+        const findImg = (o: any): string | undefined => {
+          if (!o || typeof o !== "object") return undefined;
+          if (typeof o.__image_url__ === "string") return o.__image_url__;
+          for (const v of Object.values(o)) {
+            const r = findImg(v);
+            if (r) return r;
+          }
+          return undefined;
+        };
+        const slidesPayload = (presentationData?.slides || []).map((s: any) => {
+          const c = s.content || {};
+          return {
+            title: c.title || c.heading || "",
+            body_text: c.description || c.body_text || "",
+            content: c,
+            image_url: findImg(c),
+            speaker_notes: s.speaker_note || "",
+            slide_index: s.index,
+          };
+        });
+        const response = await fetch("/api/export/pptx", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            format: "pptx",
-            id: presentation_id,
             title: safePptxTitle,
+            slides: slidesPayload,
           }),
         });
 
@@ -242,12 +262,15 @@ const PresentationHeader = ({
           throw new Error("Failed to export PPTX");
         }
 
-        const { path: pptxPath } = await response.json();
-        if (!pptxPath) {
-          throw new Error("No path returned from export");
-        }
-
-        downloadLink(pptxPath, safePptxFileName);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = safePptxFileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       }
       notify.success(
         "Export complete",
@@ -294,18 +317,19 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pdf", safePdfTitle);
       } else {
-        const response = await fetch("/api/export-presentation", {
+        const response = await fetch("/api/export/pdf", {
           method: "POST",
-          body: JSON.stringify({
-            format: "pdf",
-            id: presentation_id,
-            title: safePdfTitle,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ presentationId: presentation_id }),
         });
 
         if (response.ok) {
-          const { path: pdfPath } = await response.json();
-          downloadLink(pdfPath, safePdfFileName);
+          const data = await response.json();
+          const printUrl =
+            data.url || `/presentation?id=${presentation_id}&print=true`;
+          // Opens a clean view in a new tab; the browser's "Save as PDF"
+          // print dialog produces the PDF.
+          window.open(printUrl, "_blank");
         } else {
           throw new Error("Failed to export PDF");
         }

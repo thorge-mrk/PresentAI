@@ -1,8 +1,14 @@
+/**
+ * Dashboard API — backed by Supabase.
+ * - list/delete go directly to the RLS-protected `presentations` table
+ * - get uses the get-presentation edge function and returns the Redux
+ *   PresentationData shape expected by the viewer/editor.
+ */
+import { supabase } from "@/lib/supabase";
 import {
-  getHeader,
-} from "@/app/(presentation-generator)/services/api/header";
-import { ApiResponseHandler } from "@/app/(presentation-generator)/services/api/api-error-handler";
-import { getApiUrl } from "@/utils/api";
+  getPresentation as edgeGetPresentation,
+  slidesToPresentationData,
+} from "@/lib/presentation-api";
 
 export interface PresentationResponse {
   id: string;
@@ -18,69 +24,60 @@ export interface PresentationResponse {
   titles: string[];
   user_id: string;
   vector_store: any;
-
   thumbnail: string;
   slides: any[];
 }
 
 export class DashboardApi {
-
   static async getPresentations(): Promise<PresentationResponse[]> {
-    try {
-      const response = await fetch(
-        getApiUrl(`/api/v1/ppt/presentation/all`),
-        {
-          method: "GET",
-        }
-      );
+    const { data, error } = await supabase
+      .from("presentations")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      // Handle the special case where 404 means "no presentations found"
-      if (response.status === 404) {
-        console.log("No presentations found");
-        return [];
-      }
-
-      return await ApiResponseHandler.handleResponse(response, "Failed to fetch presentations");
-    } catch (error) {
+    if (error) {
       console.error("Error fetching presentations:", error);
-      throw error;
+      throw new Error(error.message);
     }
+
+    return (data ?? []).map((p) => ({
+      id: p.id,
+      title: p.topic,
+      created_at: p.created_at,
+      updated_at: p.created_at,
+      data: null,
+      file: "",
+      n_slides: p.slide_count ?? 0,
+      prompt: p.topic,
+      summary: p.research_data?.summary ?? null,
+      theme: null,
+      titles: [],
+      user_id: p.user_id,
+      vector_store: null,
+      thumbnail: "",
+      slides: [],
+    }));
   }
 
   static async getPresentation(id: string) {
-    try {
-      const response = await fetch(
-        getApiUrl(`/api/v1/ppt/presentation/${id}`),
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-
-      return await ApiResponseHandler.handleResponse(response, "Presentation not found");
-    } catch (error) {
-      console.error("Error fetching presentation:", error);
-      throw error;
-    }
+    const { presentation, slides } = await edgeGetPresentation(id);
+    // Returns the PresentationData shape consumed by setPresentationData().
+    return slidesToPresentationData(presentation, slides);
   }
 
   static async deletePresentation(presentation_id: string) {
-    try {
-      const response = await fetch(
-        getApiUrl(`/api/v1/ppt/presentation/${presentation_id}`),
-        {
-          method: "DELETE",
-          headers: getHeader(),
-        }
-      );
+    const { error } = await supabase
+      .from("presentations")
+      .delete()
+      .eq("id", presentation_id);
 
-      return await ApiResponseHandler.handleResponseWithResult(response, "Failed to delete presentation");
-    } catch (error) {
+    if (error) {
       console.error("Error deleting presentation:", error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : "Failed to delete presentation",
+        message: error.message || "Failed to delete presentation",
       };
     }
+    return { success: true, message: "Presentation deleted" };
   }
 }

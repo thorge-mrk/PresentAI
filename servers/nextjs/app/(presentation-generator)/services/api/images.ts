@@ -1,7 +1,12 @@
-import { getHeaderForFormData } from "./header";
-import { ApiResponseHandler } from "./api-error-handler";
+/**
+ * Images API — backed by Supabase Storage (uploads) + the search-images edge
+ * function (Pexels/Unsplash). The FastAPI image service has been removed.
+ */
 import { ImageAssetResponse } from "./types";
-import { getApiUrl } from "@/utils/api";
+import { supabase } from "@/lib/supabase";
+import { searchImages as edgeSearchImages } from "@/lib/presentation-api";
+
+const BUCKET = "uploads";
 
 interface StockSearchOptions {
   provider?: string;
@@ -9,81 +14,72 @@ interface StockSearchOptions {
   strictApiKey?: boolean;
 }
 
+function sanitize(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+}
 
 export class ImagesApi {
- 
- static async uploadImage(file: File): Promise<ImageAssetResponse> {
-    try {
-          const formData = new FormData();
-      formData.append("file", file);
-    const response = await fetch(getApiUrl(`/api/v1/ppt/images/upload`), {
-      method: "POST",
-      headers: getHeaderForFormData(),
-      body: formData,
-    });
-    return await ApiResponseHandler.handleResponse(response, "Failed to upload image") as ImageAssetResponse;
-  } catch (error:any) {
-    console.log("Upload error:", error.message);
-    throw error;
-  }
+  static async uploadImage(file: File): Promise<ImageAssetResponse> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Bitte zuerst anmelden, um Bilder hochzuladen.");
+
+    const path = `${user.id}/${Date.now()}-${sanitize(file.name)}`;
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+    if (error) throw new Error(error.message);
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    return {
+      message: "uploaded",
+      path: data.publicUrl,
+      file_url: data.publicUrl,
+      id: path,
+    };
   }
 
   static async getUploadedImages(): Promise<ImageAssetResponse[]> {
-    try {
-    const response = await fetch(getApiUrl(`/api/v1/ppt/images/uploaded`));
-   return await ApiResponseHandler.handleResponse(response, "Failed to get uploaded images") as ImageAssetResponse[];
-  } catch (error:any) {
-    console.log("Get uploaded images error:", error);
-    throw error;
-  }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list(user.id, { sortBy: { column: "created_at", order: "desc" } });
+    if (error || !data) return [];
+
+    return data
+      .filter((f) => f.id) // skip folders
+      .map((f) => {
+        const path = `${user.id}/${f.name}`;
+        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        return {
+          message: "ok",
+          path: pub.publicUrl,
+          file_url: pub.publicUrl,
+          id: path,
+        };
+      });
   }
 
-  static async deleteImage(image_id: string): Promise<{success: boolean, message?: string}> {
-    try {
-      const response = await fetch(getApiUrl(`/api/v1/ppt/images/${image_id}`), {
-        method: "DELETE"
-      });
-      return await ApiResponseHandler.handleResponse(response, "Failed to delete image") as {success: boolean, message?: string};
-    } catch (error:any) {
-      console.log("Delete image error:", error);
-      throw error;
-    }
+  static async deleteImage(
+    image_id: string
+  ): Promise<{ success: boolean; message?: string }> {
+    // image_id is the storage path returned by uploadImage().
+    const { error } = await supabase.storage.from(BUCKET).remove([image_id]);
+    if (error) return { success: false, message: error.message };
+    return { success: true };
   }
 
   static async searchStockImages(
     query: string,
     limit: number = 12,
-    options: StockSearchOptions = {}
+    _options: StockSearchOptions = {}
   ): Promise<string[]> {
-    try {
-      const params = new URLSearchParams({
-        query,
-        limit: String(limit),
-      });
-      const normalizedProvider = (options.provider || "").trim().toLowerCase();
-      if (normalizedProvider) {
-        params.set("provider", normalizedProvider);
-      }
-      if (options.strictApiKey) {
-        params.set("strict_api_key", "true");
-      }
-
-      const headers: Record<string, string> = {};
-      const trimmedApiKey = (options.apiKey || "").trim();
-      if (trimmedApiKey) {
-        headers["X-Provider-Api-Key"] = trimmedApiKey;
-      }
-
-      const response = await fetch(getApiUrl(`/api/v1/ppt/images/search?${params.toString()}`), {
-        method: "GET",
-        headers,
-      });
-      return await ApiResponseHandler.handleResponse(response, "Failed to search stock images") as string[];
-    } catch (error:any) {
-      console.log("Stock image search error:", error);
-      throw error;
-    }
+    const data = await edgeSearchImages(query, 1, limit);
+    return data.images.map((img) => img.url);
   }
 }
-
-
