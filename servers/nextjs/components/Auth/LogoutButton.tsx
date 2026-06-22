@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { LogOut } from "lucide-react";
-
-import { getApiUrl } from "@/utils/api";
+import { supabase } from "@/lib/supabase";
 
 type LogoutButtonProps = {
   label?: string;
@@ -19,21 +18,14 @@ export default function LogoutButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogout = async () => {
-    if (isSubmitting) {
-      return;
-    }
-
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await fetch(getApiUrl("/api/v1/auth/logout"), {
-        method: "POST",
-        credentials: "include",
-      });
+      await supabase.auth.signOut();
     } catch {
-      // Always route back to auth gate even if backend logout fails.
+      // Always route back to the auth gate even if sign-out fails.
     } finally {
       window.location.replace("/");
-      setIsSubmitting(false);
     }
   };
 
@@ -47,7 +39,7 @@ export default function LogoutButton({
       title={label}
     >
       <LogOut className="h-4 w-4" />
-      {!iconOnly ? <span>{isSubmitting ? "Signing out..." : label}</span> : null}
+      {!iconOnly ? <span>{isSubmitting ? "Abmelden…" : label}</span> : null}
     </button>
   );
 }

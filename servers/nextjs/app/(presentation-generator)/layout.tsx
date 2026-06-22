@@ -1,13 +1,14 @@
 import React from "react";
 
-import { requireAppSession } from "@/utils/serverAuth";
+import RequireAuth from "@/components/Auth/RequireAuth";
 import { ConfigurationInitializer } from "../ConfigurationInitializer";
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
-  await requireAppSession();
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <ConfigurationInitializer>{children}</ConfigurationInitializer>
-    </div>
+    <RequireAuth>
+      <div>
+        <ConfigurationInitializer>{children}</ConfigurationInitializer>
+      </div>
+    </RequireAuth>
   );
 }

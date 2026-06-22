@@ -1,6 +1,9 @@
 .env
 .env.*
 *.env
+# ...but keep committed example env files
+!.env.example
+!**/.env.example
 .venv
 __pycache__
 .pytest_cache
