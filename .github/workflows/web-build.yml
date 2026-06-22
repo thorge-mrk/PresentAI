@@ -1,0 +1,55 @@
+name: Web Build Test
+
+# Builds the Next.js web app so every push / PR is verified to compile.
+# Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY as repository
+# secrets for a production-realistic build; without them the app falls back to
+# safe placeholders and the build still passes.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: web-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Next.js app
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./servers/nextjs
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: servers/nextjs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          DISABLE_AUTH: "1"
+        run: npm run build
+
+      - name: Upload build output
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-standalone
+          path: servers/nextjs/.next-build/standalone
+          retention-days: 5
+          if-no-files-found: ignore
