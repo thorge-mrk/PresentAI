@@ -23,6 +23,9 @@ Die Migration `init_presentai_schema` wurde angewendet. Tabellen:
 RLS ist auf allen Tabellen aktiv (Eigentümer-Prinzip). Die Edge Functions
 schreiben mit dem Service-Role-Key.
 
+Zusätzlich gibt es den öffentlichen Storage-Bucket **`uploads`** für eigene
+Bilder/Logos (Upload nur für angemeldete Nutzer, Lesen öffentlich).
+
 ---
 
 ## 2. Edge Function Secrets (DU musst die Keys eintragen)
@@ -105,11 +108,26 @@ Ohne diese Secrets nutzt der Build sichere Platzhalter und läuft trotzdem durch
 2. **approve-outline** — Gemini wählt pro Folie das passende **Layout** aus dem
    Vorlagen-Katalog (`general`) und füllt dessen `content`; Bilder (Pexels) und
    Icons (Phosphor/Iconify) werden danach automatisch ergänzt. Speichert `slides`.
-3. **get-presentation / update-slide** — Laden bzw. einzelne Folie bearbeiten.
+3. **get-presentation / update-slide / save-presentation** — Laden, einzelne
+   Folie patchen bzw. den ganzen Editor-Stand speichern (Auto-Save).
 4. **search-images / search-icons** — Suche im Editor.
+5. **presentation-chat** — KI-Assistent (Gemini), beantwortet Fragen und schlägt
+   Verbesserungen zur Präsentation vor.
 
-Alle Functions verlangen ein gültiges Login (`verify_jwt`); die teuren
-(`generate-outline`, `approve-outline`, `search-images`) zusätzlich die Allowlist.
+Alle 8 Functions verlangen ein gültiges Login (`verify_jwt`); die teuren
+(`generate-outline`, `approve-outline`, `search-images`, `presentation-chat`)
+zusätzlich die Allowlist.
+
+### Feature-Status (Cloud-Version)
+- ✅ Erstellen → Gliederung → Generieren → Ansehen
+- ✅ Dashboard (Liste / Öffnen / Löschen)
+- ✅ Folien inline bearbeiten + Auto-Save
+- ✅ Bild- & Icon-Suche, eigener Bild-Upload (Storage)
+- ✅ Export: PPTX (Download) & PDF (Druckansicht → „Als PDF speichern")
+- ✅ KI-Chat-Assistent zur Präsentation
+- ⏳ Nicht portiert (Upstream-Reste, in der Cloud nicht nötig): Multi-Provider-
+  Auswahl (OpenAI/Ollama/Codex), eigene Themes/Fonts, Custom-Template-Builder.
+  Diese Panels zeigen klare Hinweise statt Fehler.
 
 ---
 

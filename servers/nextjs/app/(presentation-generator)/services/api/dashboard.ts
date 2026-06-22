@@ -59,7 +59,7 @@ export class DashboardApi {
     }));
   }
 
-  static async getPresentation(id: string) {
+  static async getPresentation(id: string): Promise<any> {
     const { presentation, slides } = await edgeGetPresentation(id);
     // Returns the PresentationData shape consumed by setPresentationData().
     return slidesToPresentationData(presentation, slides);
