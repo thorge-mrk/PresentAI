@@ -249,12 +249,16 @@ const PresentationHeader = ({
             slide_index: s.index,
           };
         });
+        const themeColors = (presentationData as any)?.theme?.data?.colors;
         const response = await fetch("/api/export/pptx", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: safePptxTitle,
             slides: slidesPayload,
+            theme: themeColors
+              ? { primary: themeColors.primary, background: themeColors.background }
+              : undefined,
           }),
         });
 

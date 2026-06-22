@@ -224,6 +224,12 @@ export function buildCatalogSpec(): string {
     .join("\n\n");
 }
 
+/** Returns the JSON content-shape string for a single layout id (for editing). */
+export function layoutShapeJSON(id: string): string {
+  const layout = GENERAL_LAYOUTS.find((l) => l.id === normalizeLayoutId(id));
+  return JSON.stringify(layout?.shape ?? {});
+}
+
 export function normalizeLayoutId(raw: string | undefined): string {
   if (!raw) return DEFAULT_LAYOUT_ID;
   let id = raw.trim();

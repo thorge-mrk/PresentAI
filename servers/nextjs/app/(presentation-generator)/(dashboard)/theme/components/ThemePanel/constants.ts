@@ -26,7 +26,11 @@ export const FONT_OPTIONS: any[] = [
   { name: 'Roboto', displayName: 'Roboto', cssUrl: 'https://fonts.googleapis.com/css2?family=Roboto:wght@100..900&display=swap' }
 ]
 
+import { STUDENT_THEMES } from "@/lib/student-themes";
+
 export const DEFAULT_THEMES: any[] = [
+  // Student-friendly themes first (curated for school presentations).
+  ...STUDENT_THEMES,
   {
     id: "edge-yellow",
     name: "Edge Yellow",

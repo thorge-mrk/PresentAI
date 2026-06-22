@@ -8,7 +8,8 @@ import { notify } from "@/components/ui/sonner";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import Wrapper from "@/components/Wrapper";
 import { generateOutline } from "@/lib/presentation-api";
-import { ChevronRight, BookOpen, Sparkles } from "lucide-react";
+import { STUDENT_THEMES, withAccent } from "@/lib/student-themes";
+import { ChevronRight, BookOpen, Sparkles, Palette } from "lucide-react";
 
 const GRADE_LEVELS = [
   "1.-4. Klasse (Grundschule)",
@@ -34,6 +35,8 @@ export default function UploadPage() {
   const [gradeLevel, setGradeLevel] = useState(GRADE_LEVELS[2]);
   const [textDensity, setTextDensity] = useState<"low" | "compact" | "high">("compact");
   const [slideCount, setSlideCount] = useState(10);
+  const [themeId, setThemeId] = useState(STUDENT_THEMES[0].id);
+  const [accent, setAccent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGenerate = async () => {
@@ -50,7 +53,9 @@ export default function UploadPage() {
     dispatch(clearOutlines());
 
     try {
-      const { presentationId, outlines } = await generateOutline({ topic, gradeLevel, textDensity, slideCount });
+      const base = STUDENT_THEMES.find((t) => t.id === themeId) ?? STUDENT_THEMES[0];
+      const theme = accent ? withAccent(base, accent) : base;
+      const { presentationId, outlines } = await generateOutline({ topic, gradeLevel, textDensity, slideCount, theme: theme as unknown as Record<string, unknown> });
       dispatch(setPresentationId(presentationId));
       router.push(`/outline?id=${presentationId}`);
     } catch (err: any) {
@@ -144,6 +149,66 @@ export default function UploadPage() {
           <div className="flex justify-between text-xs text-gray-400">
             <span>3 Folien</span>
             <span>25 Folien</span>
+          </div>
+        </div>
+
+        {/* Style / Theme */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            <Palette className="inline w-4 h-4 mr-1 text-violet-500" />
+            Design-Stil
+          </label>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {STUDENT_THEMES.map((t) => {
+              const c = t.data.colors;
+              const active = t.id === themeId;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setThemeId(t.id)}
+                  title={t.description}
+                  className={`rounded-xl border-2 p-3 text-left transition ${
+                    active
+                      ? "border-violet-500 ring-2 ring-violet-100"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  style={{ background: c.background }}
+                >
+                  <div className="flex gap-1 mb-2">
+                    <span className="w-4 h-4 rounded-full" style={{ background: accent && active ? accent : c.primary }} />
+                    <span className="w-4 h-4 rounded-full" style={{ background: c.card }} />
+                    <span className="w-4 h-4 rounded-full border" style={{ background: c.background_text }} />
+                  </div>
+                  <div className="text-xs font-semibold" style={{ color: c.background_text }}>
+                    {t.name}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Accent color */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">Akzentfarbe (optional)</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={accent ?? STUDENT_THEMES.find((t) => t.id === themeId)!.data.colors.primary}
+              onChange={(e) => setAccent(e.target.value)}
+              className="h-10 w-16 cursor-pointer rounded-lg border border-gray-200 bg-white p-1"
+            />
+            {accent && (
+              <button
+                type="button"
+                onClick={() => setAccent(null)}
+                className="text-sm text-gray-500 underline hover:text-gray-700"
+              >
+                Zurücksetzen
+              </button>
+            )}
+            <span className="text-xs text-gray-400">Überschreibt die Hauptfarbe des Stils.</span>
           </div>
         </div>
 

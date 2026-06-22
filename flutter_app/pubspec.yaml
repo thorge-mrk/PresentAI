@@ -1,0 +1,22 @@
+name: present_ai
+description: Present AI – Flutter client for the Supabase Edge Function backend.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Auth + calling the same Supabase Edge Functions the web app uses.
+  supabase_flutter: ^2.5.0
+  http: ^1.2.0
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

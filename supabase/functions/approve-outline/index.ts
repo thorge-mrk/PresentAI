@@ -65,9 +65,18 @@ Deno.serve(async (req) => {
     const density = DENSITY_HINT[presentation.text_density] ?? DENSITY_HINT.compact;
     const research = presentation.research_data?.summary ?? "";
 
+    // Style hint from the chosen theme so the content tone matches the design.
+    const theme = presentation.theme as Record<string, any> | null;
+    const styleHint = theme
+      ? `Designstil: "${theme.name ?? "Custom"}"${
+        theme.description ? ` – ${theme.description}` : ""
+      }. Passe Tonfall, Bildmotive und Layout-Auswahl an diesen Stil an (z.B. verspielt/farbenfroh für Schüler, seriös für Business).`
+      : "";
+
     const prompt = [
       `Du erstellst die vollständigen Inhalte einer Präsentation zum Thema "${presentation.topic}".`,
       `Zielgruppe: ${presentation.grade_level}. ${density}`,
+      styleHint,
       `Antworte in der Sprache des Themas (deutsches Thema => Deutsch).`,
       research ? `\nHintergrundwissen:\n${research}` : ``,
       ``,
