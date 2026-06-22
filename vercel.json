@@ -1,0 +1,10 @@
+{
+  "rootDirectory": "servers/nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "env": {
+    "DISABLE_AUTH": "1"
+  }
+}

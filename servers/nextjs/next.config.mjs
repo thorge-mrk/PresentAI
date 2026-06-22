@@ -1,7 +1,5 @@
 const nextConfig = {
   reactStrictMode: false,
-  distDir: ".next-build",
-  output: "standalone",
 
   images: {
     remotePatterns: [
