@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     const content = await geminiJSON<Record<string, unknown>>(promptText, {
       temperature: 0.6,
     });
-    await hydrateMedia(content);
+    await hydrateMedia(content, user.id);
 
     const c = content as Record<string, unknown>;
     const title = (c.title as string) ?? (c.heading as string) ?? slide.title;

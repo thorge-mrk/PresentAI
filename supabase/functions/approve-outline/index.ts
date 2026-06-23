@@ -8,7 +8,7 @@ import { json, preflight } from "../_shared/cors.ts";
 import { getUser, HttpError, requireAllowed } from "../_shared/auth.ts";
 import { serviceClient } from "../_shared/clients.ts";
 import { geminiJSON } from "../_shared/gemini.ts";
-import { hydrateMedia } from "../_shared/media.ts";
+import { hydrateAllMedia } from "../_shared/media.ts";
 import {
   buildCatalogSpec,
   DEFAULT_LAYOUT_ID,
@@ -114,36 +114,43 @@ Deno.serve(async (req) => {
     const byIndex = new Map<number, GenSlide>();
     for (const s of gen) byIndex.set(s.slideIndex, s);
 
-    // Build slide rows in outline order; hydrate media for each.
-    const slideRows: Record<string, unknown>[] = [];
-    for (const o of outlines) {
+    // First pass: resolve each slide's layout + content shape.
+    const prepared = outlines.map((o) => {
       const g = byIndex.get(o.slide_index);
       const layout = normalizeLayoutId(g?.layoutId) || DEFAULT_LAYOUT_ID;
       const content = (g?.content && typeof g.content === "object")
         ? g.content
         : { title: o.title, description: o.visual_description };
+      return { o, g, layout, content };
+    });
 
-      await hydrateMedia(content);
+    // Generate every slide's images (AI, no stock) across the whole deck with a
+    // shared concurrency budget — much faster than slide-by-slide.
+    await hydrateAllMedia(prepared.map((p) => p.content), user.id);
 
-      const c = content as Record<string, unknown>;
-      const title = (c.title as string) ?? (c.heading as string) ?? o.title;
-      const bodyText = (c.description as string) ?? null;
-      const imageUrl = findFirstImageUrl(content);
+    // Second pass: build slide rows in outline order.
+    const slideRows: Record<string, unknown>[] = prepared.map(
+      ({ o, g, layout, content }) => {
+        const c = content as Record<string, unknown>;
+        const title = (c.title as string) ?? (c.heading as string) ?? o.title;
+        const bodyText = (c.description as string) ?? null;
+        const imageUrl = findFirstImageUrl(content);
 
-      slideRows.push({
-        presentation_id: presentationId,
-        slide_index: o.slide_index,
-        title,
-        body_text: bodyText,
-        speaker_notes: g?.speakerNote ?? "",
-        image_url: imageUrl,
-        image_credit: null,
-        icon_name: null,
-        layout_group: TEMPLATE_NAME,
-        layout,
-        content,
-      });
-    }
+        return {
+          presentation_id: presentationId,
+          slide_index: o.slide_index,
+          title,
+          body_text: bodyText,
+          speaker_notes: g?.speakerNote ?? "",
+          image_url: imageUrl,
+          image_credit: null,
+          icon_name: null,
+          layout_group: TEMPLATE_NAME,
+          layout,
+          content,
+        };
+      },
+    );
 
     // Replace any previous slides for idempotency, then insert fresh ones.
     await svc.from("slides").delete().eq("presentation_id", presentationId);
