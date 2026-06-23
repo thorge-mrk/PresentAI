@@ -33,8 +33,9 @@ export const CustomTemplateCard = React.memo(function CustomTemplateCard({ templ
     }, [router, template.id, template.name]);
 
     return (
-        <Card
-            className="cursor-pointer flex flex-col shadow-none sm:shadow-none relative hover:shadow-sm transition-all duration-200 group overflow-hidden rounded-[22px] border border-[#E8E9EC] bg-white"
+        <div
+            className="cursor-pointer flex flex-col relative transition-all duration-200 group overflow-hidden"
+            style={{ borderRadius: 22, border: "1px solid var(--bg-muted)", backgroundColor: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}
             onClick={handleOpen}
         >
             <TemplatePreviewStage>
@@ -45,11 +46,11 @@ export const CustomTemplateCard = React.memo(function CustomTemplateCard({ templ
                     templateId={template.id}
                 />
             </TemplatePreviewStage>
-            <div className="relative z-40 flex items-center justify-between border-t border-[#EDEEEF] bg-white px-6 py-5">
-                <h3 className="max-w-[min(191px,65%)] text-base font-bold text-gray-900">{template.name}</h3>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-purple-600" />
+            <div className="relative z-40 flex items-center justify-between px-6 py-5" style={{ borderTop: "1px solid var(--bg-muted)", backgroundColor: "var(--bg-surface)" }}>
+                <h3 className="max-w-[min(191px,65%)] text-base font-bold" style={{ color: "var(--text-primary)" }}>{template.name}</h3>
+                <ArrowUpRight className="h-4 w-4 shrink-0" style={{ color: "var(--text-secondary)" }} />
             </div>
-        </Card>
+        </div>
     );
 }, (prev, next) => {
     return (
@@ -69,23 +70,24 @@ const InbuiltTemplateCard = React.memo(function InbuiltTemplateCard({
     const handleOpen = useCallback(() => onOpen(template.id), [onOpen, template.id]);
 
     return (
-        <Card
+        <div
             key={template.id}
-            className="group relative cursor-pointer overflow-hidden rounded-[22px] border border-[#E8E9EC] bg-white shadow-none sm:shadow-none transition-all duration-200 hover:shadow-sm"
+            className="group relative cursor-pointer overflow-hidden transition-all duration-200"
+            style={{ borderRadius: 22, border: "1px solid var(--bg-muted)", backgroundColor: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}
             onClick={handleOpen}
         >
             <TemplatePreviewStage>
                 <LayoutsBadge count={template.layouts.length} />
                 <InbuiltTemplatePreview layouts={template.layouts} templateId={template.id} />
             </TemplatePreviewStage>
-            <div className="relative z-40 flex items-center justify-between gap-4 border-t border-[#EDEEEF] bg-white px-6 py-5">
+            <div className="relative z-40 flex items-center justify-between gap-4 px-6 py-5" style={{ borderTop: "1px solid var(--bg-muted)", backgroundColor: "var(--bg-surface)" }}>
                 <div className="min-w-0 flex-1">
-                    <h3 className="text-base font-bold capitalize text-gray-900">{template.name}</h3>
-                    <p className="mt-1 line-clamp-2 text-sm text-gray-500">{template.description}</p>
+                    <h3 className="text-base font-bold capitalize" style={{ color: "var(--text-primary)" }}>{template.name}</h3>
+                    <p className="mt-1 line-clamp-2 text-sm" style={{ color: "var(--text-secondary)" }}>{template.description}</p>
                 </div>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-blue-600" />
+                <ArrowUpRight className="h-4 w-4 shrink-0" style={{ color: "var(--text-secondary)" }} />
             </div>
-        </Card>
+        </div>
     );
 });
 
@@ -129,22 +131,24 @@ const LayoutPreview = () => {
         <div className="min-h-screen  relative font-syne">
             <div className="sticky top-0 right-0 z-50 py-[28px] px-6   backdrop-blur ">
                 <div className="flex xl:flex-row flex-col gap-6 xl:gap-0 items-center justify-between">
-                    <h3 className=" text-[28px] tracking-[-0.84px] font-unbounded font-normal text-[#101828] flex items-center gap-2">
+                    <h3 style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
                         Templates
                     </h3>
-                    <div className="flex  gap-2.5 max-sm:w-full max-md:justify-center max-sm:flex-wrap">
+                    <div className="flex gap-2.5 max-sm:w-full max-md:justify-center max-sm:flex-wrap">
                         <Link
                             href="/custom-template"
                             onClick={() => trackEvent(MixpanelEvent.Templates_New_Template_Clicked)}
-                            className="inline-flex items-center font-syne font-semibold gap-2 rounded-xl px-4 py-2.5 text-black text-sm  shadow-sm hover:shadow-md"
+                            className="inline-flex items-center font-semibold gap-2 text-sm text-white"
                             aria-label="Create new template"
                             style={{
-                                borderRadius: "48px",
-                                background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                                borderRadius: 10, padding: "8px 14px",
+                                backgroundColor: "var(--mint-500)",
+                                boxShadow: "0 6px 14px -8px rgba(20,184,166,0.65)",
+                                textDecoration: "none",
                             }}
                         >
-                            <span className="hidden md:inline">New Template</span>
-                            <span className="md:hidden">New</span>
+                            <span className="hidden md:inline">Neues Template</span>
+                            <span className="md:hidden">Neu</span>
                             <ChevronRight className="w-4 h-4" />
                         </Link>
 
@@ -153,24 +157,24 @@ const LayoutPreview = () => {
             </div>
 
             <div className="l mx-auto px-6 py-8">
-                <div className='p-1 rounded-[40px] bg-[#ffffff] w-fit border border-[#EDEEEF] flex items-center justify-center '>
-                    <button className='px-5  py-2 text-xs font-medium text-[#3A3A3A] rounded-[70px]'
+                <div className='p-1 w-fit flex items-center' style={{ borderRadius: 40, backgroundColor: "var(--bg-surface)", border: "1px solid var(--bg-muted)" }}>
+                    <button className='px-5 py-2 text-xs font-medium'
                         onClick={() => { trackEvent(MixpanelEvent.Templates_Tab_Switched, { tab: 'custom' }); setTab('custom'); }}
                         style={{
-                            background: tab === 'custom' ? '#F4F3FF' : 'transparent',
-                            color: tab === 'custom' ? '#5146E5' : '#3A3A3A'
+                            borderRadius: 70, background: tab === 'custom' ? "var(--accent-pale)" : 'transparent',
+                            color: tab === 'custom' ? "var(--accent)" : "var(--text-secondary)",
+                            border: "none", cursor: "pointer",
                         }}
-                    >Custom</button>
-                    <svg xmlns="http://www.w3.org/2000/svg" className='mx-1' width="2" height="17" viewBox="0 0 2 17" fill="none">
-                        <path d="M1 0V16.5" stroke="#EDECEC" strokeWidth="2" />
-                    </svg>
-                    <button className='px-5  py-2 text-xs font-medium text-[#3A3A3A] rounded-[70px]'
+                    >Eigene</button>
+                    <div style={{ width: 1, height: 17, backgroundColor: "var(--bg-muted)", margin: "0 4px" }} />
+                    <button className='px-5 py-2 text-xs font-medium'
                         onClick={() => { trackEvent(MixpanelEvent.Templates_Tab_Switched, { tab: 'default' }); setTab('default'); }}
                         style={{
-                            background: tab === 'default' ? '#F4F3FF' : 'transparent',
-                            color: tab === 'default' ? '#5146E5' : '#3A3A3A'
+                            borderRadius: 70, background: tab === 'default' ? "var(--accent-pale)" : 'transparent',
+                            color: tab === 'default' ? "var(--accent)" : "var(--text-secondary)",
+                            border: "none", cursor: "pointer",
                         }}
-                    >Built-in</button>
+                    >Standard</button>
                 </div>
 
                 {/* Inbuilt Templates Section: non-neo first, then Report (neo) */}
@@ -187,7 +191,7 @@ const LayoutPreview = () => {
                         </div>
                         {neoInbuilt.length > 0 && (
                             <div>
-                                <h4 className="text-base font-semibold text-[#101828] mb-6 font-syne tracking-tight">
+                                <h4 className="text-base font-semibold mb-6 tracking-tight" style={{ color: "var(--text-primary)" }}>
                                     Report
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

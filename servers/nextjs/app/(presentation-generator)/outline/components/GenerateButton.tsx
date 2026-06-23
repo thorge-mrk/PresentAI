@@ -33,10 +33,8 @@ const GenerateButton: React.FC<GenerateButtonProps> = ({
       onClick={() => {
         onSubmit();
       }}
-      className=" w-full flex items-center gap-0.5 rounded-[58px] text-sm py-3 px-5 font-instrument_sans font-semibold  text-[#101323] disabled:opacity-50 disabled:cursor-not-allowed font-syne"
-      style={{
-        background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
-      }}
+      className="w-full flex items-center gap-1 rounded-[58px] text-sm py-3 px-5 font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+      style={{ backgroundColor: "var(--mint-500)", boxShadow: "0 8px 18px -10px rgba(20,184,166,0.65)" }}
     >
 
       {getButtonText()}

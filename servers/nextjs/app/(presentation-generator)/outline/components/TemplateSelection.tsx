@@ -28,30 +28,34 @@ const BuiltInTemplateCard = memo(function BuiltInTemplateCard({
   const handleClick = useCallback(() => onSelect(template), [onSelect, template]);
 
   return (
-    <Card
-      className={cn(
-        "cursor-pointer relative hover:shadow-sm transition-all duration-200 group overflow-hidden rounded-[22px] bg-white border",
-        isSelected
-          ? " border-blue-500 ring-2 ring-blue-500/25 shadow-sm"
-          : " border-[#E8E9EC]"
-      )}
+    <div
       onClick={handleClick}
+      style={{
+        cursor: "pointer",
+        position: "relative",
+        borderRadius: 22,
+        overflow: "hidden",
+        border: isSelected ? "2px solid var(--mint-500)" : "1px solid var(--bg-muted)",
+        backgroundColor: "var(--bg-surface)",
+        boxShadow: isSelected ? "0 0 0 3px rgba(20,184,166,0.15)" : "var(--shadow-sm)",
+        transition: "box-shadow 0.2s, border-color 0.2s",
+      }}
     >
       <TemplatePreviewStage>
         <LayoutsBadge count={template.layouts.length} />
         <InbuiltTemplatePreview layouts={template.layouts} templateId={template.id} isOutline={true} />
       </TemplatePreviewStage>
-      <div className="flex items-center justify-between px-6 py-5 bg-white border-t border-[#EDEEEF] relative z-40">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-gray-900 capitalize font-syne">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderTop: "1px solid var(--bg-muted)", backgroundColor: "var(--bg-surface)" }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h3 style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--text-primary)", textTransform: "capitalize" }}>
             {template.name}
           </h3>
-          <p className="text-xs text-gray-600 line-clamp-2 font-syne">
+          <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
             {template.description}
           </p>
         </div>
       </div>
-    </Card>
+    </div>
   );
 });
 

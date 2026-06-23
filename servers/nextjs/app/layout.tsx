@@ -1,74 +1,52 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import { Syne, Unbounded } from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { Toaster } from "@/components/ui/sonner";
-const inter = localFont({
-  src: [
-    {
-      path: "./fonts/Inter.ttf",
-      weight: "400",
-      style: "normal",
-    },
-  ],
-  variable: "--font-inter",
-});
 
-const syne = Syne({
+const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-syne",
-});
-
-const unbounded = Unbounded({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-unbounded",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://presenton.ai"),
-  title: "Presenton - Open Source AI presentation generator",
+  metadataBase: new URL("https://present.orately.ai"),
+  title: "Present — by Orately AI",
   description:
-    "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
+    "Erstelle hochwertige KI-Präsentationen mit Gemini. Automatische Bildgenerierung, professionelle Templates und sofortiger Export als PPTX oder PDF.",
   keywords: [
+    "KI-Präsentation",
+    "Präsentationsgenerator",
+    "Gemini AI",
+    "Orately",
+    "Präsentation erstellen",
     "AI presentation generator",
-    "data storytelling",
-    "data visualization tool",
-    "AI data presentation",
-    "presentation generator",
-    "data to presentation",
-    "interactive presentations",
-    "professional slides",
+    "PPTX export",
+    "Schulpräsentation",
   ],
   openGraph: {
-    title: "Presenton - Open Source AI presentation generator",
+    title: "Present — by Orately AI",
     description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-    url: "https://presenton.ai",
-    siteName: "Presenton",
-    images: [
-      {
-        url: "https://presenton.ai/presenton-feature-graphics.png",
-        width: 1200,
-        height: 630,
-        alt: "Presenton Logo",
-      },
-    ],
+      "Erstelle hochwertige KI-Präsentationen mit Gemini. Automatische Bildgenerierung, professionelle Templates und sofortiger Export.",
+    url: "https://present.orately.ai",
+    siteName: "Present by Orately AI",
     type: "website",
-    locale: "en_US",
-  },
-  alternates: {
-    canonical: "https://presenton.ai",
+    locale: "de_DE",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Presenton - Open Source AI presentation generator",
+    title: "Present — by Orately AI",
     description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-    images: ["https://presenton.ai/presenton-feature-graphics.png"],
+      "Erstelle hochwertige KI-Präsentationen mit Gemini. Automatische Bildgenerierung, professionelle Templates und sofortiger Export.",
+  },
+  icons: {
+    icon: [
+      { url: "/orately-glyph.svg", type: "image/svg+xml" },
+    ],
+    apple: "/orately-glyph.svg",
   },
 };
 
@@ -77,17 +55,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   return (
-    <html lang="en">
-      <body
-        className={`${inter.variable} ${syne.variable} ${unbounded.variable} antialiased`}
-      >
+    <html lang="de" suppressHydrationWarning>
+      <body className={`${poppins.variable} antialiased`} style={{ fontFamily: "var(--font-poppins, 'Poppins'), system-ui, sans-serif" }}>
         <Providers>
           <MixpanelInitializer>
-
             {children}
-
           </MixpanelInitializer>
         </Providers>
         <Toaster position="top-center" />

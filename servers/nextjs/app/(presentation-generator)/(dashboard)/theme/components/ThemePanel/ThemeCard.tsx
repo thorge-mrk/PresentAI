@@ -20,13 +20,14 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, onSelect, onDelete,
 
 
   return (<div
-    className={` group rounded-xl border w-[305px] cursor-pointer transition-all relative bg-white border-[#EDEEEF]   hover:shadow-md`}
+    className="group rounded-xl border w-[305px] cursor-pointer transition-all relative hover:shadow-md"
+    style={{ backgroundColor: "var(--bg-surface)", borderColor: "var(--bg-muted)" }}
     onClick={() => onSelect(theme)}
 
   >
     {showDeleteButton && <button
-      className="absolute hidden group-hover:block duration-300 transition-all -top-3 -right-3 z-10 bg-white rounded-full p-2  border border-[#EDEEEF] hover:bg-gray-100 hover:text-gray-700"
-      style={{ boxShadow: '0 6.6px 13.2px 0 rgba(0, 0, 0, 0.10)' }}
+      className="absolute hidden group-hover:block duration-300 transition-all -top-3 -right-3 z-10 rounded-full p-2"
+      style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--bg-muted)", boxShadow: '0 6.6px 13.2px 0 rgba(0, 0, 0, 0.10)', color: "var(--text-secondary)" }}
       onClick={(e) => {
         e.stopPropagation()
         setShowDeleteDialog(true)
@@ -46,33 +47,36 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, onSelect, onDelete,
       >
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
         <div
-          className="relative bg-white rounded-2xl w-[340px] shadow-2xl animate-[scaleIn_200ms_ease-out] "
+          className="relative rounded-2xl w-[340px] shadow-2xl animate-[scaleIn_200ms_ease-out]"
+          style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--bg-muted)" }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-6 pb-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-red-500" />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "rgba(212,91,78,0.1)" }}>
+              <AlertTriangle className="h-6 w-6" style={{ color: "var(--status-danger)" }} />
             </div>
-            <h3 className="text-lg font-semibold text-[#191919] mb-2">Delete Theme?</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              You're about to delete <span className="font-medium text-gray-700">"{theme.name}"</span>. This action cannot be undone.
+            <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Theme löschen?</h3>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              Du bist dabei <span className="font-medium" style={{ color: "var(--text-primary)" }}>"{theme.name}"</span> zu löschen. Diese Aktion kann nicht rückgängig gemacht werden.
             </p>
           </div>
-          <div className="flex border-t border-gray-100">
+          <div className="flex" style={{ borderTop: "1px solid var(--bg-muted)" }}>
             <button
               onClick={() => setShowDeleteDialog(false)}
-              className="flex-1 px-4 py-3.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-3.5 text-sm font-medium transition-colors"
+              style={{ color: "var(--text-secondary)", background: "none", border: "none", cursor: "pointer" }}
             >
-              Cancel
+              Abbrechen
             </button>
             <button
               onClick={() => {
                 onDelete(theme.id)
                 setShowDeleteDialog(false)
               }}
-              className="flex-1 px-4 py-3.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors border-l border-gray-100"
+              className="flex-1 px-4 py-3.5 text-sm font-medium transition-colors"
+              style={{ color: "var(--status-danger)", background: "none", border: "none", borderLeft: "1px solid var(--bg-muted)", cursor: "pointer" }}
             >
-              Delete
+              Löschen
             </button>
           </div>
         </div>

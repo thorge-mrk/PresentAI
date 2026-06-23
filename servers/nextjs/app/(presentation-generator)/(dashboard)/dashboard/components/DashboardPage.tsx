@@ -1,66 +1,30 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-
 import { DashboardApi } from "@/app/(presentation-generator)/services/api/dashboard";
 import { PresentationGrid } from "@/app/(presentation-generator)/(dashboard)/dashboard/components/PresentationGrid";
 import Link from "next/link";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Plus, Sparkles } from "lucide-react";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePathname } from "next/navigation";
-
-const actionCardBase =
-  "absolute aspect-[16/9] h-[46.238px] w-[82.201px] rounded-[4.474px] border border-white/50 bg-cover bg-center bg-no-repeat shadow-[0_8px_18px_rgba(16,24,40,0.18)] transition-all duration-500 ease-out opacity-100 translate-y-0 scale-100";
-
-const FloatingActionCards = () => (
-  <div className="pointer-events-none absolute right-[14px] top-[-36px] z-0 block h-[64px] w-[158px]">
-    <div
-      className={`${actionCardBase} left-0 top-0 border-none group-hover/action:-translate-x-2 group-hover/action:-rotate-3 group-focus-visible/action:-translate-x-2 group-focus-visible/action:-rotate-3`}
-      style={{
-        backgroundImage: "url('/create_presentation_card_3.png')",
-      }}
-    />
-    <div
-      className={`${actionCardBase} left-[39px] top-1 z-10 border-none group-hover/action:-translate-y-1 group-hover/action:scale-105 group-focus-visible/action:-translate-y-1 group-focus-visible/action:scale-105`}
-      style={{
-        backgroundImage: "url('/create_presentation_card_2.png')",
-      }}
-    />
-    <div
-      className={`${actionCardBase} left-[76px] top-0 border-none group-hover/action:translate-x-2 group-hover/action:rotate-3 group-focus-visible/action:translate-x-2 group-focus-visible/action:rotate-3`}
-      style={{
-        backgroundImage: "url('/create_presentation_card_1.png')",
-      }}
-    />
-  </div>
-);
 
 const DashboardPage: React.FC = () => {
   const pathname = usePathname();
   const [presentations, setPresentations] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deckSortDirection, setDeckSortDirection] = useState<"desc" | "asc">(
-    "desc"
-  );
+  const [deckSortDirection, setDeckSortDirection] = useState<"desc" | "asc">("desc");
 
   const sortedPresentations = useMemo(() => {
     if (!presentations) return presentations;
-
     return [...presentations].sort((a: any, b: any) => {
-      const first = new Date(a.updated_at ?? a.created_at).getTime();
+      const first  = new Date(a.updated_at ?? a.created_at).getTime();
       const second = new Date(b.updated_at ?? b.created_at).getTime();
-
       return deckSortDirection === "desc" ? second - first : first - second;
     });
   }, [presentations, deckSortDirection]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      await fetchPresentations();
-    };
-    loadData();
-  }, []);
+  useEffect(() => { fetchPresentations(); }, []);
 
   const fetchPresentations = async () => {
     let fetchedCount = 0;
@@ -70,88 +34,157 @@ const DashboardPage: React.FC = () => {
       setError(null);
       const data = await DashboardApi.getPresentations();
       fetchedCount = data.length;
-      data.sort(
-        (a: any, b: any) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
+      data.sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
       setPresentations(data);
-    } catch (err) {
+    } catch {
       hasError = true;
       setError(null);
       setPresentations([]);
     } finally {
-      trackEvent(MixpanelEvent.Dashboard_Page_Viewed, {
-        pathname,
-        presentation_count: fetchedCount,
-        load_failed: hasError,
-      });
+      trackEvent(MixpanelEvent.Dashboard_Page_Viewed, { pathname, presentation_count: fetchedCount, load_failed: hasError });
       setIsLoading(false);
     }
   };
 
   const removePresentation = (presentationId: string) => {
-    setPresentations((prev: any) =>
-      prev ? prev.filter((p: any) => p.id !== presentationId) : []
-    );
+    setPresentations((prev: any) => prev ? prev.filter((p: any) => p.id !== presentationId) : []);
   };
 
   return (
-    <div className="min-h-screen w-full px-3 pb-10 sm:px-6 relative">
-      <div className="sticky top-0 right-0 z-50 py-[28px] backdrop-blur mb-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[28px] tracking-[-0.84px] font-syne font-normal text-[#101828] flex items-center gap-2">
-            Slide Presentation
-          </h3>
+    <div style={{
+      minHeight: "100vh",
+      backgroundColor: "var(--bg-base)",
+      padding: "0 32px 48px",
+      transition: "background-color var(--dur-base) var(--ease-out)",
+    }}>
+      {/* Header */}
+      <div style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        backgroundColor: "var(--bg-base)",
+        paddingTop: 32,
+        paddingBottom: 20,
+        borderBottom: "1px solid var(--bg-muted)",
+        marginBottom: 32,
+        transition: "background-color var(--dur-base) var(--ease-out)",
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+          <div>
+            <div className="o-label" style={{ marginBottom: 6 }}>Meine Präsentationen</div>
+            <h1 style={{
+              fontSize: "1.75rem",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "var(--text-primary)",
+              lineHeight: 1.2,
+              margin: 0,
+            }}>
+              Present<span style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)", marginLeft: 8, letterSpacing: "0" }}>by Orately AI</span>
+            </h1>
+          </div>
+          <Link
+            href="/upload"
+            onClick={() => trackEvent(MixpanelEvent.Dashboard_New_Presentation_Clicked, { pathname, source: "dashboard_header" })}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 18px",
+              backgroundColor: "var(--mint-500)",
+              color: "#fff",
+              borderRadius: 12,
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              textDecoration: "none",
+              boxShadow: "0 8px 18px -10px rgba(20,184,166,0.65)",
+              transition: "filter var(--dur-fast) var(--ease-out)",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = "brightness(1.08)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = "none"; }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Neue Präsentation
+          </Link>
         </div>
       </div>
-      <section className="relative z-10 overflow-visible  ">
-        <h2 className="font-syne text-base bg-transparent font-medium pb-3.5  text-[#333333] ">
-          Actions
-        </h2>
+
+      {/* Quick create card */}
+      <section style={{ marginBottom: 48 }}>
+        <div className="o-label" style={{ marginBottom: 16 }}>Schnellstart</div>
         <Link
           href="/upload"
-          onClick={() =>
-            trackEvent(MixpanelEvent.Dashboard_New_Presentation_Clicked, {
-              pathname,
-              source: "dashboard_actions_card",
-            })
-          }
-          className="group/action bg-white z-50 mt-2  relative  block w-[304px] max-w-full overflow-visible rounded-[10.8px] outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8] focus-visible:ring-offset-4 cursor-pointer"
-          aria-label="Create presentation"
+          onClick={() => trackEvent(MixpanelEvent.Dashboard_New_Presentation_Clicked, { pathname, source: "dashboard_quickstart" })}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            padding: "20px 24px",
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid var(--bg-muted)",
+            borderRadius: "var(--radius-xl)",
+            boxShadow: "var(--shadow-premium)",
+            textDecoration: "none",
+            maxWidth: 380,
+            transition: "transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+            (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-lg)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+            (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-premium)";
+          }}
         >
-          <FloatingActionCards />
-
-          <img
-            src="/create_presentation_bg.png"
-            alt="Background of the create presentation card"
-            className="relative bg-white z-10 h-[89.983px] w-[304px] max-w-full rounded-[10.8px] object-cover"
-          />
-          <span className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 text-center font-syne text-sm font-medium text-[#191919]">
-            Create Presentation
-          </span>
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            backgroundColor: "var(--accent-pale)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <Sparkles size={22} style={{ color: "var(--mint-500)" }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: "0.9375rem", color: "var(--text-primary)", marginBottom: 4 }}>
+              KI-Präsentation erstellen
+            </div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+              Thema eingeben → Gliederung → fertige Folien
+            </div>
+          </div>
         </Link>
       </section>
-      <section className="relative z-10 mt-12">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-syne text-base font-medium  text-[#333333] ">
-            Decks
-          </h2>
+
+      {/* Presentations grid */}
+      <section>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div className="o-label">Alle Präsentationen</div>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#2F3033] transition-colors hover:bg-[#F3F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A5AF8]"
-            title="Toggle deck sort order"
-            aria-label="Toggle deck sort order"
-            onClick={() =>
-              setDeckSortDirection((current) =>
-                current === "desc" ? "asc" : "desc"
-              )
-            }
+            title="Sortierung wechseln"
+            onClick={() => setDeckSortDirection((d) => d === "desc" ? "asc" : "desc")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              border: "1px solid var(--bg-muted)",
+              backgroundColor: "var(--bg-surface)",
+              cursor: "pointer",
+              color: "var(--text-secondary)",
+              transition: "background-color var(--dur-fast) var(--ease-out)",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-muted)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-surface)"; }}
           >
-            <ArrowUpDown
-              className={`h-4 w-4 transition-transform duration-300 ${
-                deckSortDirection === "asc" ? "rotate-180" : ""
-              }`}
-            />
+            <ArrowUpDown size={14} style={{ transform: deckSortDirection === "asc" ? "rotate(180deg)" : "", transition: "transform 0.3s" }} />
           </button>
         </div>
         <PresentationGrid

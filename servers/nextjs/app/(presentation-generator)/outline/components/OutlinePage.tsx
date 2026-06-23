@@ -63,17 +63,19 @@ const OutlinePage: React.FC = () => {
             <div className="h-[4.75rem] shrink-0 sm:h-[5rem]" aria-hidden />
             <div className="fixed top-26 left-0 right-0 z-50  pb-2">
               <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-10 lg:px-20">
-                <TabsList className="my-4 h-auto w-fit rounded-full border border-[#EDEEEF] bg-white p-1.5">
+                <TabsList className="my-4 h-auto w-fit rounded-full p-1.5" style={{ border: "1px solid var(--bg-muted)", backgroundColor: "var(--bg-surface)" }}>
                   <TabsTrigger
                     value={TABS.OUTLINE}
-                    className="rounded-full px-5 py-2  text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F4F3FF] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
+                    className="rounded-full px-5 py-2 text-xs font-medium shadow-none data-[state=active]:shadow-none"
+                    style={{ color: "var(--text-secondary)" }}
                   >
                     Outline & Content
                   </TabsTrigger>
                   <Separator orientation="vertical" className="h-6 mx-1" />
                   <TabsTrigger
                     value={TABS.LAYOUTS}
-                    className="relative rounded-full px-5  py-2 text-xs font-medium text-[#2D2D2D] shadow-none  data-[state=active]:bg-[#F4F3FF] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
+                    className="relative rounded-full px-5 py-2 text-xs font-medium shadow-none data-[state=active]:shadow-none"
+                    style={{ color: "var(--text-secondary)" }}
                   >
                     Select Template
                   </TabsTrigger>
@@ -94,7 +96,7 @@ const OutlinePage: React.FC = () => {
                 />
               </TabsContent>
 
-              <TabsContent value={TABS.LAYOUTS} className="mt-0 bg-white">
+              <TabsContent value={TABS.LAYOUTS} className="mt-0" style={{ backgroundColor: "var(--bg-base)" }}>
                 <TemplateSelection
                   selectedTemplate={selectedTemplate}
                   onSelectTemplate={setSelectedTemplate}
