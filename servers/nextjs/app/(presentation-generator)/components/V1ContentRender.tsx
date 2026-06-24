@@ -19,8 +19,9 @@ export const V1ContentRender = ({ slide, isEditMode, theme }: { slide: any, isEd
     const containerRef = useRef<HTMLDivElement | null>(null);
 
 
-    const customTemplateId = slide.layout_group.startsWith("custom-") ? slide.layout_group.split("custom-")[1] : slide.layout_group;
-    const isCustomTemplate = uuidValidate(customTemplateId) || slide.layout_group.startsWith("custom-");
+    const layoutGroup: string = slide?.layout_group ?? "";
+    const customTemplateId = layoutGroup.startsWith("custom-") ? layoutGroup.split("custom-")[1] : layoutGroup;
+    const isCustomTemplate = uuidValidate(customTemplateId) || layoutGroup.startsWith("custom-");
 
     // Always call the hook (React hooks rule), but with empty id when not a custom template
     const { template: customTemplate, loading: customLoading } = useCustomTemplateDetails({
@@ -31,10 +32,12 @@ export const V1ContentRender = ({ slide, isEditMode, theme }: { slide: any, isEd
 
 
     // Memoize layout resolution to prevent unnecessary recalculations
+    const slideLayout: string = slide?.layout ?? "";
     const Layout = useMemo(() => {
+        if (!slideLayout) return null;
         if (isCustomTemplate) {
             if (customTemplate) {
-                const layoutId = slide.layout.startsWith("custom-") ? slide.layout.split(":")[1] : slide.layout;
+                const layoutId = slideLayout.startsWith("custom-") ? slideLayout.split(":")[1] : slideLayout;
 
 
                 const compiledLayout = customTemplate.layouts.find(
@@ -46,10 +49,16 @@ export const V1ContentRender = ({ slide, isEditMode, theme }: { slide: any, isEd
             }
             return null;
         } else {
-            const template = getLayoutByLayoutId(slide.layout, slide.layout_group);
+            const template = getLayoutByLayoutId(slideLayout, layoutGroup);
             return template?.component ?? null;
         }
-    }, [isCustomTemplate, customTemplate, slide.layout]);
+    }, [isCustomTemplate, customTemplate, slideLayout, layoutGroup]);
+
+    if (!slide) {
+        return (
+            <div className="flex items-center justify-center aspect-video h-full bg-gray-100 rounded-lg" />
+        );
+    }
 
     // Show loading state for custom templates
     if (isCustomTemplate && customLoading) {
