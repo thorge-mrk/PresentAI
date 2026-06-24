@@ -7,7 +7,8 @@
     "dev": "next dev ",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "gen:catalog": "esbuild scripts/gen-backend-catalog.ts --bundle --platform=node --format=esm --tsconfig=tsconfig.json --outfile=.gen-catalog.mjs && node .gen-catalog.mjs && rm -f .gen-catalog.mjs"
   },
   "dependencies": {
     "@babel/parser": "^7.28.4",

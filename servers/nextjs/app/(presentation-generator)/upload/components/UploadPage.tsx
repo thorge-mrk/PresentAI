@@ -7,8 +7,22 @@ import { notify } from "@/components/ui/sonner";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import { generateOutline } from "@/lib/presentation-api";
 import { STUDENT_THEMES, withAccent } from "@/lib/student-themes";
-import { BookOpen, Sparkles, ChevronRight, Palette, AlignLeft, AlignCenter, AlignJustify } from "lucide-react";
+import { BookOpen, Sparkles, ChevronRight, Palette, AlignLeft, AlignCenter, AlignJustify, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
+
+// Built-in template groups the backend can generate (must match the keys in
+// supabase/functions/_shared/catalogs.generated.json).
+const TEMPLATES: { id: string; name: string; desc: string }[] = [
+  { id: "general", name: "Allgemein", desc: "Vielseitig für jedes Thema" },
+  { id: "education", name: "Bildung", desc: "Für Unterricht & Schule" },
+  { id: "modern", name: "Modern", desc: "Klare, moderne Folien" },
+  { id: "standard", name: "Standard", desc: "Klassisch & sachlich" },
+  { id: "swift", name: "Swift", desc: "Schlicht & schnell" },
+  { id: "report", name: "Report", desc: "Daten & Analysen" },
+  { id: "product-overview", name: "Produkt", desc: "Produkt-Übersichten" },
+  { id: "pitch-deck", name: "Pitch Deck", desc: "Überzeugende Pitches" },
+  { id: "code", name: "Code", desc: "Technik & Entwicklung" },
+];
 
 const GRADE_LEVELS = [
   "1.-4. Klasse (Grundschule)",
@@ -34,6 +48,7 @@ export default function UploadPage() {
   const [gradeLevel, setGradeLevel] = useState(GRADE_LEVELS[2]);
   const [textDensity, setTextDensity] = useState<"low" | "compact" | "high">("compact");
   const [slideCount, setSlideCount] = useState(10);
+  const [template, setTemplate] = useState(TEMPLATES[0].id);
   const [themeId, setThemeId] = useState(STUDENT_THEMES[0].id);
   const [accent, setAccent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +72,7 @@ export default function UploadPage() {
         gradeLevel,
         textDensity,
         slideCount,
+        template,
         theme: theme as unknown as Record<string, unknown>,
       });
       dispatch(setPresentationId(presentationId));
@@ -171,6 +187,43 @@ export default function UploadPage() {
             </select>
           </div>
 
+          {/* Template / Layout style */}
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: 10 }}>
+              <LayoutTemplate size={14} style={{ color: "var(--mint-500)" }} />
+              Vorlage
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              {TEMPLATES.map((t) => {
+                const active = t.id === template;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    title={t.desc}
+                    onClick={() => setTemplate(t.id)}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: active ? "2px solid var(--mint-500)" : "1px solid var(--bg-muted)",
+                      backgroundColor: active ? "var(--accent-pale)" : "var(--bg-base)",
+                      color: active ? "var(--mint-600)" : "var(--text-primary)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all var(--dur-fast) var(--ease-out)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, fontSize: "0.8125rem" }}>{t.name}</span>
+                    <span style={{ fontSize: "0.6875rem", color: active ? "var(--mint-600)" : "var(--text-secondary)", lineHeight: 1.2 }}>{t.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Text Density */}
           <div>
             <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>
@@ -231,7 +284,7 @@ export default function UploadPage() {
           <div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: 10 }}>
               <Palette size={14} style={{ color: "var(--mint-500)" }} />
-              Design-Template
+              Farbschema
             </label>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {STUDENT_THEMES.map((t) => {

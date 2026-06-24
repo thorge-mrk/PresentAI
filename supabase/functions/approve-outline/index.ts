@@ -11,9 +11,10 @@ import { geminiJSON } from "../_shared/gemini.ts";
 import { hydrateAllMedia } from "../_shared/media.ts";
 import {
   buildCatalogSpec,
-  DEFAULT_LAYOUT_ID,
+  DEFAULT_GROUP,
+  groupRoles,
+  isKnownGroup,
   normalizeLayoutId,
-  TEMPLATE_NAME,
 } from "../_shared/layout-catalog.ts";
 
 interface Body {
@@ -65,6 +66,13 @@ Deno.serve(async (req) => {
     const density = DENSITY_HINT[presentation.text_density] ?? DENSITY_HINT.compact;
     const research = presentation.research_data?.summary ?? "";
 
+    // Chosen template group decides which layout catalog the model picks from.
+    const templateId = (presentation as Record<string, any>).template as
+      | string
+      | null;
+    const groupId = isKnownGroup(templateId) ? (templateId as string) : DEFAULT_GROUP;
+    const roles = groupRoles(groupId);
+
     // Style hint from the chosen theme so the content tone matches the design.
     const theme = presentation.theme as Record<string, any> | null;
     const styleHint = theme
@@ -80,20 +88,23 @@ Deno.serve(async (req) => {
       `Antworte in der Sprache des Themas (deutsches Thema => Deutsch).`,
       research ? `\nHintergrundwissen:\n${research}` : ``,
       ``,
-      `Du hast einen Katalog an Folien-Layouts. Wähle für JEDE Folie das am besten passende Layout`,
-      `und fülle dessen "content" exakt nach der angegebenen Form. Kombiniere verschiedene Layouts,`,
-      `damit die Präsentation abwechslungsreich und professionell aussieht.`,
+      `Du hast einen Katalog an Folien-Layouts (Template "${groupId}"). Wähle für JEDE Folie das`,
+      `am besten passende Layout aus DIESEM Katalog und fülle dessen "content" exakt nach der`,
+      `angegebenen Form. Kombiniere verschiedene Layouts, damit die Präsentation abwechslungsreich`,
+      `und professionell aussieht. Benutze NUR layoutId-Werte aus dem Katalog unten.`,
       `Regeln:`,
-      `- Folie 0: nutze "general:general-intro-slide".`,
-      `- Wenn es mehr als 4 Folien gibt: Folie 1 = "general:table-of-contents-slide".`,
-      `- Die letzte Folie: Fazit/Zusammenfassung (z.B. "general:basic-info-slide" oder "general:quote-slide").`,
-      `- "metrics-slide"/"chart-with-bullets-slide" NUR bei echten Zahlen/Daten.`,
+      `- Folie 0: nutze "${roles.introId}".`,
+      roles.tocId
+        ? `- Wenn es mehr als 4 Folien gibt: Folie 1 = "${roles.tocId}".`
+        : ``,
+      `- Die letzte Folie: Fazit/Zusammenfassung.`,
+      `- Metrik-/Diagramm-Layouts NUR bei echten Zahlen/Daten.`,
       `- Bei Bildern: setze NUR "__image_prompt__" (englische Suchanfrage). KEINE URLs erfinden.`,
       `- Bei Icons: setze NUR "__icon_query__" (englische Suchanfrage). KEINE URLs erfinden.`,
       `- Halte dich strikt an die Zeichenlimits der Felder.`,
       ``,
       `LAYOUT-KATALOG:`,
-      buildCatalogSpec(),
+      buildCatalogSpec(groupId),
       ``,
       `GLIEDERUNG (${outlines.length} Folien):`,
       ...outlines.map(
@@ -102,9 +113,9 @@ Deno.serve(async (req) => {
       ),
       ``,
       `Gib NUR valides JSON zurück:`,
-      `{ "slides": [ { "slideIndex": 0, "layoutId": "general:...", "content": { ... }, "speakerNote": "1-3 Sätze Sprechnotiz" } ] }`,
+      `{ "slides": [ { "slideIndex": 0, "layoutId": "${roles.introId}", "content": { ... }, "speakerNote": "1-3 Sätze Sprechnotiz" } ] }`,
       `Das Array muss genau ${outlines.length} Folien in der richtigen Reihenfolge enthalten.`,
-    ].join("\n");
+    ].filter(Boolean).join("\n");
 
     const result = await geminiJSON<{ slides: GenSlide[] }>(prompt, {
       temperature: 0.7,
@@ -117,7 +128,7 @@ Deno.serve(async (req) => {
     // First pass: resolve each slide's layout + content shape.
     const prepared = outlines.map((o) => {
       const g = byIndex.get(o.slide_index);
-      const layout = normalizeLayoutId(g?.layoutId) || DEFAULT_LAYOUT_ID;
+      const layout = normalizeLayoutId(g?.layoutId, groupId);
       const content = (g?.content && typeof g.content === "object")
         ? g.content
         : { title: o.title, description: o.visual_description };
@@ -145,7 +156,7 @@ Deno.serve(async (req) => {
           image_url: imageUrl,
           image_credit: null,
           icon_name: null,
-          layout_group: TEMPLATE_NAME,
+          layout_group: groupId,
           layout,
           content,
         };

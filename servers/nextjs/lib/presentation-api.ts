@@ -9,6 +9,8 @@ export interface PresentationRequest {
   gradeLevel: string;
   textDensity: "low" | "compact" | "high";
   slideCount: number;
+  /** Built-in template group id (e.g. "general", "education", "report"). */
+  template?: string;
   theme?: Record<string, unknown> | null;
 }
 

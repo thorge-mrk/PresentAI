@@ -4,17 +4,14 @@ import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { notify } from "@/components/ui/sonner";
 import { clearPresentationData, setPresentationData } from "@/store/slices/presentationGeneration";
-import { LoadingState, TABS } from "../types/index";
-import { TemplateLayoutsWithSettings } from "@/app/presentation-templates/utils";
+import { LoadingState } from "../types/index";
 import { approveOutline, slidesToPresentationData } from "@/lib/presentation-api";
 
 const DEFAULT_LOADING: LoadingState = { message: "", isLoading: false, showProgress: false, duration: 0 };
 
 export const usePresentationGeneration = (
   presentationId: string | null,
-  outlines: { content: string }[] | null,
-  selectedTemplate: TemplateLayoutsWithSettings | string | null,
-  setActiveTab: (tab: string) => void
+  outlines: { content: string }[] | null
 ) => {
   const dispatch = useDispatch();
   const router = useRouter();

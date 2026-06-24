@@ -209,30 +209,109 @@ export const GENERAL_LAYOUTS: LayoutDef[] = [
   },
 ];
 
-export const KNOWN_LAYOUT_IDS = new Set(GENERAL_LAYOUTS.map((l) => l.id));
-export const DEFAULT_LAYOUT_ID = "general:basic-info-slide";
+// ---------------------------------------------------------------------------
+// Group-aware catalog. Every built-in template group's layouts are auto-derived
+// from the app's React layout schemas via scripts/gen-backend-catalog.ts and
+// stored in catalogs.generated.json. The curated "general" shapes above are kept
+// as a higher-quality override for that group.
+// ---------------------------------------------------------------------------
+import GENERATED from "./catalogs.generated.json" with { type: "json" };
 
-// Compact, model-friendly description of the whole catalog.
-export function buildCatalogSpec(): string {
-  return GENERAL_LAYOUTS
+export interface Layout {
+  id: string;
+  name: string;
+  description: string;
+  spec: unknown; // either a compact shape (general) or a JSON schema (generated)
+}
+
+type GeneratedShape = Record<
+  string,
+  {
+    id: string;
+    name?: string;
+    layouts: { id: string; name: string; description: string; schema: unknown }[];
+  }
+>;
+
+export const DEFAULT_GROUP = "general";
+
+const GROUPS: Record<string, Layout[]> = {};
+for (const [gid, g] of Object.entries(GENERATED as GeneratedShape)) {
+  GROUPS[gid] = g.layouts.map((l) => ({
+    id: l.id,
+    name: l.name,
+    description: l.description,
+    spec: l.schema,
+  }));
+}
+// Prefer the curated, compact general shapes.
+GROUPS[DEFAULT_GROUP] = GENERAL_LAYOUTS.map((l) => ({
+  id: l.id,
+  name: l.name,
+  description: l.description,
+  spec: l.shape,
+}));
+
+export function listGroups(): { id: string; count: number }[] {
+  return Object.entries(GROUPS).map(([id, layouts]) => ({ id, count: layouts.length }));
+}
+
+export function isKnownGroup(groupId: string | undefined | null): boolean {
+  return !!groupId && Object.prototype.hasOwnProperty.call(GROUPS, groupId);
+}
+
+function group(groupId: string | undefined | null): Layout[] {
+  return (groupId && GROUPS[groupId]) || GROUPS[DEFAULT_GROUP];
+}
+
+/** Detect the intro/cover and table-of-contents layouts of a group, for ordering. */
+export function groupRoles(groupId: string): { introId: string; tocId: string | null } {
+  const layouts = group(groupId);
+  const byKw = (re: RegExp) =>
+    layouts.find((l) => re.test(l.id.toLowerCase()) || re.test(l.name.toLowerCase()));
+  const intro = byKw(/intro|cover/) ?? layouts[0];
+  const toc = byKw(/table[-_ ]?of[-_ ]?contents|agenda|contents|\btoc\b/) ?? null;
+  return { introId: intro.id, tocId: toc ? toc.id : null };
+}
+
+export function defaultLayoutId(groupId: string): string {
+  const layouts = group(groupId);
+  const basic = layouts.find((l) =>
+    /basic|content|description|info|text/.test(l.id.toLowerCase())
+  );
+  return (basic ?? layouts[0]).id;
+}
+
+/** Compact, model-friendly description of one group's catalog. */
+export function buildCatalogSpec(groupId: string = DEFAULT_GROUP): string {
+  return group(groupId)
     .map(
-      (l) =>
-        `### ${l.id}\n${l.description}\ncontent shape:\n${
-          JSON.stringify(l.shape)
-        }`,
+      (l) => `### ${l.id}\n${l.description}\ncontent shape:\n${JSON.stringify(l.spec)}`,
     )
     .join("\n\n");
 }
 
-/** Returns the JSON content-shape string for a single layout id (for editing). */
+/** Returns the JSON content-shape string for a single full layout id (any group). */
 export function layoutShapeJSON(id: string): string {
-  const layout = GENERAL_LAYOUTS.find((l) => l.id === normalizeLayoutId(id));
-  return JSON.stringify(layout?.shape ?? {});
+  for (const layouts of Object.values(GROUPS)) {
+    const found = layouts.find((l) => l.id === id);
+    if (found) return JSON.stringify(found.spec);
+  }
+  return "{}";
 }
 
-export function normalizeLayoutId(raw: string | undefined): string {
-  if (!raw) return DEFAULT_LAYOUT_ID;
+/** Coerce a model-provided layout id into a valid id within the given group. */
+export function normalizeLayoutId(
+  raw: string | undefined,
+  groupId: string = DEFAULT_GROUP,
+): string {
+  const ids = new Set(group(groupId).map((l) => l.id));
+  if (!raw) return defaultLayoutId(groupId);
   let id = raw.trim();
-  if (!id.includes(":")) id = `${TEMPLATE_NAME}:${id}`;
-  return KNOWN_LAYOUT_IDS.has(id) ? id : DEFAULT_LAYOUT_ID;
+  if (!id.includes(":")) id = `${groupId}:${id}`;
+  return ids.has(id) ? id : defaultLayoutId(groupId);
 }
+
+// Back-compat (general group).
+export const KNOWN_LAYOUT_IDS = new Set(GROUPS[DEFAULT_GROUP].map((l) => l.id));
+export const DEFAULT_LAYOUT_ID = defaultLayoutId(DEFAULT_GROUP);
