@@ -13,7 +13,7 @@ import Link from "next/link";
 // Built-in template groups the backend can generate (must match the keys in
 // supabase/functions/_shared/catalogs.generated.json).
 const TEMPLATES: { id: string; name: string; desc: string }[] = [
-  { id: "general", name: "Allgemein", desc: "Vielseitig für jedes Thema" },
+  { id: "general", name: "Smart", desc: "Automatische Layoutwahl je Folie" },
   { id: "education", name: "Bildung", desc: "Für Unterricht & Schule" },
   { id: "modern", name: "Modern", desc: "Klare, moderne Folien" },
   { id: "standard", name: "Standard", desc: "Klassisch & sachlich" },

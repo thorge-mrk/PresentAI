@@ -27,6 +27,7 @@ import { RootState } from "@/store/store";
 import { notify } from "@/components/ui/sonner";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePresentationUndoRedo } from "../hooks/PresentationUndoRedo";
+import { exportPptxFromDom, exportPdfFromDom } from "@/lib/export-slides";
 import ToolTip from "@/components/ToolTip";
 import {
   clearPresentationData,
@@ -229,52 +230,10 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pptx", safePptxTitle);
       } else {
-        const findImg = (o: any): string | undefined => {
-          if (!o || typeof o !== "object") return undefined;
-          if (typeof o.__image_url__ === "string") return o.__image_url__;
-          for (const v of Object.values(o)) {
-            const r = findImg(v);
-            if (r) return r;
-          }
-          return undefined;
-        };
-        const slidesPayload = (presentationData?.slides || []).map((s: any) => {
-          const c = s.content || {};
-          return {
-            title: c.title || c.heading || "",
-            body_text: c.description || c.body_text || "",
-            content: c,
-            image_url: findImg(c),
-            speaker_notes: s.speaker_note || "",
-            slide_index: s.index,
-          };
-        });
-        const themeColors = (presentationData as any)?.theme?.data?.colors;
-        const response = await fetch("/api/export/pptx", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: safePptxTitle,
-            slides: slidesPayload,
-            theme: themeColors
-              ? { primary: themeColors.primary, background: themeColors.background }
-              : undefined,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to export PPTX");
-        }
-
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = safePptxFileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        // 1:1 export: capture each rendered slide (real template + theme) and
+        // assemble the PPTX from those images.
+        const indices = (presentationData?.slides || []).map((s: any) => s.index);
+        await exportPptxFromDom(indices, safePptxFileName);
       }
       notify.success(
         "Export complete",
@@ -321,22 +280,9 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pdf", safePdfTitle);
       } else {
-        const response = await fetch("/api/export/pdf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ presentationId: presentation_id }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const printUrl =
-            data.url || `/presentation?id=${presentation_id}&print=true`;
-          // Opens a clean view in a new tab; the browser's "Save as PDF"
-          // print dialog produces the PDF.
-          window.open(printUrl, "_blank");
-        } else {
-          throw new Error("Failed to export PDF");
-        }
+        // 1:1 export: capture each rendered slide and print one image per page.
+        const indices = (presentationData?.slides || []).map((s: any) => s.index);
+        await exportPdfFromDom(indices, safePdfTitle);
       }
       notify.success(
         "Export complete",
