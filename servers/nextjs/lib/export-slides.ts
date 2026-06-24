@@ -15,20 +15,23 @@ export async function captureSlides(indices: number[]): Promise<string[]> {
   for (const idx of indices) {
     const host = document.getElementById(`slide-${idx}`);
     if (!host) continue;
-    // Prefer the inner design element so we don't capture centering padding.
+    // Capture the unscaled 1280x720 design stage for a clean, full-resolution
+    // render (avoids the CSS transform scale used for on-screen fitting).
     const target =
-      (host.querySelector("[data-layout]") as HTMLElement) || host;
-
-    const rect = target.getBoundingClientRect();
-    const scale = rect.width > 0 ? Math.max(2, (DESIGN_W * 2) / rect.width) : 2;
+      (host.querySelector(".slide-edit-stage") as HTMLElement) ||
+      (host.querySelector("[data-layout]") as HTMLElement) ||
+      host;
 
     const canvas = await html2canvas(target, {
-      scale,
+      scale: 2,
+      width: DESIGN_W,
+      height: 720,
+      windowWidth: DESIGN_W,
+      windowHeight: 720,
       useCORS: true,
       allowTaint: false,
       backgroundColor: "#ffffff",
       logging: false,
-      windowWidth: document.documentElement.scrollWidth,
     });
     images.push(canvas.toDataURL("image/png"));
   }
