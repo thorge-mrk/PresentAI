@@ -42,12 +42,7 @@ export const metadata: Metadata = {
     description:
       "Erstelle hochwertige KI-Präsentationen mit Gemini. Automatische Bildgenerierung, professionelle Templates und sofortiger Export.",
   },
-  icons: {
-    icon: [
-      { url: "/orately-glyph.svg", type: "image/svg+xml" },
-    ],
-    apple: "/orately-glyph.svg",
-  },
+  // Favicons are provided by the file convention: app/icon.png, app/apple-icon.png, app/favicon.ico
 };
 
 export default function RootLayout({

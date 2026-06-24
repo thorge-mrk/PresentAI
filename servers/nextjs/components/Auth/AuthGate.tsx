@@ -4,20 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import { notify } from "@/components/ui/sonner";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Mail, Lock } from "lucide-react";
+import BrandIcon from "@/components/BrandIcon";
 
 type Mode = "signin" | "signup";
-
-const OGlyph = () => (
-  <svg width="24" height="24" viewBox="0 0 200 200" fill="none">
-    <g stroke="#08110F" strokeWidth="28" strokeLinecap="round">
-      <line x1="48"  y1="86"  x2="48"  y2="114" />
-      <line x1="76"  y1="68"  x2="76"  y2="132" />
-      <line x1="104" y1="54"  x2="104" y2="146" />
-      <line x1="132" y1="74"  x2="132" y2="126" />
-      <line x1="158" y1="90"  x2="158" y2="110" />
-    </g>
-  </svg>
-);
 
 export default function AuthGate() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -124,17 +113,8 @@ export default function AuthGate() {
           width: "100%",
           maxWidth: 380,
         }}>
-          <div style={{
-            width: 56,
-            height: 56,
-            borderRadius: 16,
-            backgroundColor: "var(--mint-500)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 20px",
-          }}>
-            <OGlyph />
+          <div style={{ display: "flex", justifyContent: "center", margin: "0 auto 20px" }}>
+            <BrandIcon size={64} />
           </div>
           <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Present</h2>
           <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>by Orately AI</div>
@@ -176,18 +156,8 @@ export default function AuthGate() {
       <div style={{ width: "100%", maxWidth: 420 }}>
         {/* Brand */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{
-            width: 60,
-            height: 60,
-            borderRadius: 18,
-            backgroundColor: "var(--mint-500)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 16px",
-            boxShadow: "0 8px 24px -8px rgba(20,184,166,0.5)",
-          }}>
-            <OGlyph />
+          <div style={{ display: "flex", justifyContent: "center", margin: "0 auto 16px" }}>
+            <BrandIcon size={72} />
           </div>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.025em", color: "var(--text-primary)", marginBottom: 4, lineHeight: 1.1 }}>
             Present

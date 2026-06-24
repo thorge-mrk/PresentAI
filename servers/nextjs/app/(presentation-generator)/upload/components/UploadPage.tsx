@@ -7,13 +7,15 @@ import { notify } from "@/components/ui/sonner";
 import { OverlayLoader } from "@/components/ui/overlay-loader";
 import { generateOutline } from "@/lib/presentation-api";
 import { STUDENT_THEMES, withAccent } from "@/lib/student-themes";
-import { BookOpen, Sparkles, ChevronRight, Palette, AlignLeft, AlignCenter, AlignJustify, LayoutTemplate } from "lucide-react";
+import { BookOpen, Sparkles, ChevronRight, Palette, AlignLeft, AlignCenter, AlignJustify, LayoutTemplate, Upload, FileText, X, Loader2 } from "lucide-react";
 import Link from "next/link";
+import BrandIcon from "@/components/BrandIcon";
+import { extractDocuments, isSupportedDocument } from "@/lib/document-extract";
 
 // Built-in template groups the backend can generate (must match the keys in
 // supabase/functions/_shared/catalogs.generated.json).
 const TEMPLATES: { id: string; name: string; desc: string }[] = [
-  { id: "general", name: "Smart", desc: "Automatische Layoutwahl je Folie" },
+  { id: "smart", name: "Smart", desc: "Mischt Layouts aus allen Vorlagen" },
   { id: "education", name: "Bildung", desc: "Für Unterricht & Schule" },
   { id: "modern", name: "Modern", desc: "Klare, moderne Folien" },
   { id: "standard", name: "Standard", desc: "Klassisch & sachlich" },
@@ -53,6 +55,43 @@ export default function UploadPage() {
   const [accent, setAccent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Uploaded source documents → extracted text used as generation context.
+  const [docNames, setDocNames] = useState<string[]>([]);
+  const [docContext, setDocContext] = useState("");
+  const [docParsing, setDocParsing] = useState(false);
+
+  const handleFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+    const supported = files.filter(isSupportedDocument);
+    const unsupported = files.filter((f) => !isSupportedDocument(f));
+    if (unsupported.length) {
+      notify.warning("Format nicht unterstützt", `${unsupported.map((f) => f.name).join(", ")} – nur PDF & Textdateien.`);
+    }
+    if (!supported.length) return;
+    setDocParsing(true);
+    try {
+      const { text, names, errors } = await extractDocuments(supported);
+      if (text) {
+        setDocContext(text);
+        setDocNames(names);
+        notify.success("Dokumente geladen", `${names.length} Datei(en) als Kontext übernommen.`);
+      }
+      if (errors.length) {
+        notify.warning("Teilweise nicht lesbar", errors.join(" · "));
+      }
+    } catch (err: any) {
+      notify.error("Lesefehler", err?.message || "Dokumente konnten nicht gelesen werden.");
+    } finally {
+      setDocParsing(false);
+    }
+  };
+
+  const clearDocs = () => {
+    setDocContext("");
+    setDocNames([]);
+  };
+
   const handleGenerate = async () => {
     if (!topic.trim()) {
       notify.warning("Thema fehlt", "Bitte gib ein Thema ein.");
@@ -74,6 +113,7 @@ export default function UploadPage() {
         slideCount,
         template,
         theme: theme as unknown as Record<string, unknown>,
+        documentContext: docContext || undefined,
       });
       dispatch(setPresentationId(presentationId));
       router.push(`/outline?id=${presentationId}`);
@@ -100,25 +140,7 @@ export default function UploadPage() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", marginBottom: 24 }}>
-            <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              backgroundColor: "var(--mint-500)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
-              <svg width="20" height="20" viewBox="0 0 200 200" fill="none">
-                <g stroke="#08110F" strokeWidth="28" strokeLinecap="round">
-                  <line x1="48"  y1="86"  x2="48"  y2="114" />
-                  <line x1="76"  y1="68"  x2="76"  y2="132" />
-                  <line x1="104" y1="54"  x2="104" y2="146" />
-                  <line x1="132" y1="74"  x2="132" y2="126" />
-                  <line x1="158" y1="90"  x2="158" y2="110" />
-                </g>
-              </svg>
-            </div>
+            <BrandIcon size={36} />
             <div style={{ textAlign: "left" }}>
               <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary)", lineHeight: 1.1 }}>Present</div>
               <div style={{ fontSize: "0.6875rem", color: "var(--text-secondary)", lineHeight: 1 }}>by Orately AI</div>
@@ -159,6 +181,70 @@ export default function UploadPage() {
               onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
               autoFocus
             />
+          </div>
+
+          {/* Source documents (optional) */}
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>
+              <Upload size={14} style={{ color: "var(--mint-500)" }} />
+              Quelldokumente <span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>(optional)</span>
+            </label>
+            {docNames.length === 0 ? (
+              <label
+                htmlFor="doc-upload"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  padding: "20px 16px",
+                  border: "1.5px dashed var(--bg-muted)",
+                  borderRadius: 12,
+                  backgroundColor: "var(--bg-base)",
+                  cursor: docParsing ? "wait" : "pointer",
+                  textAlign: "center",
+                  transition: "border-color var(--dur-fast) var(--ease-out)",
+                }}
+              >
+                {docParsing ? (
+                  <Loader2 size={20} style={{ color: "var(--mint-500)", animation: "spin 1s linear infinite" }} />
+                ) : (
+                  <FileText size={20} style={{ color: "var(--mint-500)" }} />
+                )}
+                <span style={{ fontSize: "0.8125rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                  {docParsing ? "Wird gelesen…" : "PDF oder Textdatei hochladen"}
+                </span>
+                <span style={{ fontSize: "0.6875rem", color: "var(--text-secondary)" }}>
+                  Inhalt wird als Kontext für die Präsentation genutzt
+                </span>
+                <input
+                  id="doc-upload"
+                  type="file"
+                  multiple
+                  accept=".pdf,.txt,.md,.markdown,.csv,.tsv,.json,.html,.htm,.xml,.rtf,text/*,application/pdf"
+                  onChange={(e) => handleFiles(e.target.files)}
+                  disabled={docParsing}
+                  style={{ display: "none" }}
+                />
+              </label>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {docNames.map((n) => (
+                  <div key={n} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, backgroundColor: "var(--accent-pale)", border: "1px solid var(--bg-muted)" }}>
+                    <FileText size={14} style={{ color: "var(--mint-600)", flexShrink: 0 }} />
+                    <span style={{ fontSize: "0.8125rem", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{n}</span>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={clearDocs}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, alignSelf: "flex-start", fontSize: "0.75rem", color: "var(--text-secondary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "var(--font-family)", padding: 0 }}
+                >
+                  <X size={12} /> Entfernen
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Grade Level */}

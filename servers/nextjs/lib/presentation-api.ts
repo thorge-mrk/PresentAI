@@ -12,6 +12,8 @@ export interface PresentationRequest {
   /** Built-in template group id (e.g. "general", "education", "report"). */
   template?: string;
   theme?: Record<string, unknown> | null;
+  /** Extracted text from user-uploaded documents, used as source context. */
+  documentContext?: string;
 }
 
 export interface SlideOutline {

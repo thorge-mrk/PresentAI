@@ -14,6 +14,7 @@ import {
   DEFAULT_GROUP,
   groupRoles,
   isKnownGroup,
+  isSmartGroup,
   loadCatalog,
   normalizeLayoutId,
 } from "../_shared/layout-catalog.ts";
@@ -69,12 +70,14 @@ Deno.serve(async (req) => {
 
     const density = DENSITY_HINT[presentation.text_density] ?? DENSITY_HINT.compact;
     const research = presentation.research_data?.summary ?? "";
+    const documentContext = (presentation.research_data?.documentContext ?? "").trim();
 
     // Chosen template group decides which layout catalog the model picks from.
     const templateId = (presentation as Record<string, any>).template as
       | string
       | null;
     const groupId = isKnownGroup(templateId) ? (templateId as string) : DEFAULT_GROUP;
+    const smart = isSmartGroup(groupId);
     const roles = groupRoles(groupId);
 
     // Style hint from the chosen theme so the content tone matches the design.
@@ -91,11 +94,26 @@ Deno.serve(async (req) => {
       styleHint,
       `Antworte in der Sprache des Themas (deutsches Thema => Deutsch).`,
       research ? `\nHintergrundwissen:\n${research}` : ``,
+      documentContext
+        ? `\nQUELLDOKUMENTE des Nutzers (verbindliche faktische Grundlage, gib Inhalte korrekt wieder):\n"""\n${documentContext}\n"""`
+        : ``,
       ``,
-      `Du hast einen Katalog an Folien-Layouts (Template "${groupId}"). Wähle für JEDE Folie das`,
-      `am besten passende Layout aus DIESEM Katalog und fülle dessen "content" exakt nach der`,
-      `angegebenen Form. Kombiniere verschiedene Layouts, damit die Präsentation abwechslungsreich`,
-      `und professionell aussieht. Benutze NUR layoutId-Werte aus dem Katalog unten.`,
+      smart
+        ? `Du hast einen Katalog mit Layouts aus ALLEN Design-Familien (Smart-Modus). Wähle für JEDE`
+        : `Du hast einen Katalog an Folien-Layouts (Template "${groupId}"). Wähle für JEDE Folie das`,
+      smart
+        ? `Folie frei das am besten zum Inhalt passende Layout – mische bewusst verschiedene Familien`
+        : `am besten passende Layout aus DIESEM Katalog und fülle dessen "content" exakt nach der`,
+      smart
+        ? `(z.B. Diagramm-Layout bei Daten, Bild-Layout bei Visuellem, Quote-Layout für Kernaussagen),`
+        : `angegebenen Form. Kombiniere verschiedene Layouts, damit die Präsentation abwechslungsreich`,
+      smart
+        ? `damit die Präsentation maximal abwechslungsreich und professionell wirkt. Fülle "content"`
+        : `und professionell aussieht. Benutze NUR layoutId-Werte aus dem Katalog unten.`,
+      smart
+        ? `exakt nach der Form des gewählten Layouts. Benutze NUR vollständige layoutId-Werte (mit`
+        : ``,
+      smart ? `"familie:layout" Präfix) aus dem Katalog unten.` : ``,
       `Regeln:`,
       `- Folie 0: nutze "${roles.introId}".`,
       roles.tocId
@@ -150,6 +168,10 @@ Deno.serve(async (req) => {
         const title = (c.title as string) ?? (c.heading as string) ?? o.title;
         const bodyText = (c.description as string) ?? null;
         const imageUrl = findFirstImageUrl(content);
+        // The renderer resolves the component from the layout id's own family
+        // prefix, so layout_group must match it (critical in smart mode, where
+        // each slide can come from a different family).
+        const layoutGroup = layout.includes(":") ? layout.split(":")[0] : groupId;
 
         return {
           presentation_id: presentationId,
@@ -160,7 +182,7 @@ Deno.serve(async (req) => {
           image_url: imageUrl,
           image_credit: null,
           icon_name: null,
-          layout_group: groupId,
+          layout_group: layoutGroup,
           layout,
           content,
         };

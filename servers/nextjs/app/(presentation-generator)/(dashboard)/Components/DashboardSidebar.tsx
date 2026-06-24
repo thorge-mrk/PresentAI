@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import BrandIcon from "@/components/BrandIcon";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -56,27 +57,8 @@ export default function DashboardSidebar() {
       {/* Logo */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 28, width: "100%" }}>
         <Link href="/dashboard" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textDecoration: "none", marginBottom: 8 }}>
-          <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            backgroundColor: "var(--mint-500)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 12px -4px rgba(20,184,166,0.50)",
-          }}>
-            {/* Orately soundwave glyph */}
-            <svg width="26" height="26" viewBox="0 0 200 200" fill="none">
-              <g stroke="#08110F" strokeWidth="22" strokeLinecap="round">
-                <line x1="48"  y1="86"  x2="48"  y2="114" />
-                <line x1="76"  y1="68"  x2="76"  y2="132" />
-                <line x1="104" y1="54"  x2="104" y2="146" />
-                <line x1="132" y1="74"  x2="132" y2="126" />
-                <line x1="158" y1="90"  x2="158" y2="110" />
-              </g>
-            </svg>
-          </div>
+          {/* Official Orately brand icon */}
+          <BrandIcon size={44} />
           <span style={{ fontSize: 8, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.04em", lineHeight: 1, textTransform: "uppercase" }}>
             Present
           </span>

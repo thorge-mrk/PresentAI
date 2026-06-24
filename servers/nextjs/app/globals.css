@@ -507,3 +507,9 @@ thead { width: calc(100% - 1em); }
   border-color: var(--accent);
   box-shadow: var(--shadow-focus);
 }
+
+/* Orately brand icon — theme-aware variant switching (class-based dark mode) */
+.brand-icon__light { display: block; }
+.brand-icon__dark  { display: none; }
+.dark .brand-icon__light { display: none; }
+.dark .brand-icon__dark  { display: block; }

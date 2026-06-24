@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Layout, Plus } from "lucide-react";
+import BrandIcon from "@/components/BrandIcon";
 
 const Header: React.FC = () => {
   return (
@@ -10,7 +11,11 @@ const Header: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo-white.png" alt="Presenton" className="h-6 w-auto" />
+            <BrandIcon size={32} />
+            <span className="flex flex-col leading-none">
+              <span className="text-base font-extrabold tracking-tight text-gray-900">Present</span>
+              <span className="text-[10px] font-medium text-gray-500">by Orately AI</span>
+            </span>
           </Link>
 
           <nav className="flex items-center gap-4">
