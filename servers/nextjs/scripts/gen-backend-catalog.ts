@@ -54,37 +54,53 @@ function readExportString(source: string, name: string): string | null {
 }
 
 /**
- * Slim a JSON schema for the generation prompt:
- *  - drop server-filled media url fields (`__image_url__`, `__icon_url__`) and
- *    the stock-photo defaults they carry, so the model only returns prompts
- *  - drop noisy keys (`$schema`, `default`, `additionalProperties`)
+ * Convert a JSON schema into a compact, model-friendly "shape": each leaf
+ * becomes a short hint string (type + length/enum + description); objects and
+ * arrays recurse. Server-filled media url fields are dropped so the model only
+ * returns `__image_prompt__` / `__icon_query__`.
  */
-function slim(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(slim);
-  if (node && typeof node === "object") {
-    const obj = node as Record<string, unknown>;
+type Schema = Record<string, any>;
+
+function toShape(node: any): any {
+  if (!node || typeof node !== "object") return node;
+  const s = node as Schema;
+
+  // Unwrap optional/union schemas (anyOf/oneOf) — drop the null branch.
+  const union = s.anyOf || s.oneOf;
+  if (Array.isArray(union)) {
+    const real = union.find((u: Schema) => u && u.type !== "null") ?? union[0];
+    return toShape(real);
+  }
+
+  const type = Array.isArray(s.type) ? s.type.find((t: string) => t !== "null") : s.type;
+
+  if (type === "object" && s.properties) {
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(obj)) {
-      if (k === "$schema" || k === "default" || k === "additionalProperties") continue;
-      if (k === "properties" && v && typeof v === "object") {
-        const props = v as Record<string, unknown>;
-        const cleaned: Record<string, unknown> = {};
-        for (const [pk, pv] of Object.entries(props)) {
-          if (pk === "__image_url__" || pk === "__icon_url__") continue;
-          cleaned[pk] = slim(pv);
-        }
-        out[k] = cleaned;
-        continue;
-      }
-      if (k === "required" && Array.isArray(v)) {
-        out[k] = v.filter((x) => x !== "__image_url__" && x !== "__icon_url__");
-        continue;
-      }
-      out[k] = slim(v);
+    for (const [pk, pv] of Object.entries(s.properties as Schema)) {
+      if (pk === "__image_url__" || pk === "__icon_url__") continue;
+      out[pk] = toShape(pv);
     }
     return out;
   }
-  return node;
+  if (type === "array") {
+    return [toShape(s.items ?? {})];
+  }
+
+  // Leaf → hint string.
+  let hint: string;
+  if (Array.isArray(s.enum)) {
+    hint = s.enum.join(" | ");
+  } else if (type === "number" || type === "integer") {
+    hint = "number";
+  } else if (type === "boolean") {
+    hint = "boolean";
+  } else if (typeof s.minLength === "number" || typeof s.maxLength === "number") {
+    hint = `string ${s.minLength ?? 0}-${s.maxLength ?? "∞"} chars`;
+  } else {
+    hint = type ?? "string";
+  }
+  if (s.description) hint += ` — ${s.description}`;
+  return hint;
 }
 
 function main() {
@@ -116,7 +132,7 @@ function main() {
         id: `${groupId}:${slug}`,
         name,
         description,
-        schema: slim(compiled.schemaJSON),
+        schema: toShape(compiled.schemaJSON),
       });
     }
 
