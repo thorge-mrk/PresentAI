@@ -129,16 +129,55 @@ export const PresentationCard = ({
           suppressHydrationWarning
           style={{ display: "flex", flexDirection: "column", flex: 1, position: "relative" }}
         >
-          {/* Slide preview */}
+          {/* Slide preview (the list endpoint does not load slides, so show a
+              lightweight themed placeholder instead of rendering a layout). */}
           <div style={{
             position: "relative",
             backgroundColor: "var(--bg-base)",
             padding: "12px 12px 0",
             overflow: "hidden",
           }}>
-            <div style={{ transform: "scale(0.75)", transformOrigin: "top center", border: "1px solid var(--bg-muted)", borderRadius: 8, overflow: "hidden" }}>
-              <SlideScale slide={firstSlide} isClickable={false} />
-            </div>
+            {firstSlide ? (
+              <div style={{ transform: "scale(0.75)", transformOrigin: "top center", border: "1px solid var(--bg-muted)", borderRadius: 8, overflow: "hidden" }}>
+                <SlideScale slide={firstSlide} isClickable={false} />
+              </div>
+            ) : (
+              <div style={{
+                aspectRatio: "16 / 9",
+                borderRadius: 8,
+                border: "1px solid var(--bg-muted)",
+                background: "linear-gradient(135deg, var(--accent-pale), var(--bg-surface))",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                padding: 16,
+                textAlign: "center",
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  backgroundColor: "var(--mint-500)",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 200 200" fill="none">
+                    <g stroke="#08110F" strokeWidth="28" strokeLinecap="round">
+                      <line x1="48" y1="86" x2="48" y2="114" />
+                      <line x1="76" y1="68" x2="76" y2="132" />
+                      <line x1="104" y1="54" x2="104" y2="146" />
+                      <line x1="132" y1="74" x2="132" y2="126" />
+                      <line x1="158" y1="90" x2="158" y2="110" />
+                    </g>
+                  </svg>
+                </div>
+                <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {title}
+                </span>
+                <span style={{ fontSize: "0.6875rem", color: "var(--text-secondary)" }}>
+                  {presentation?.n_slides ? `${presentation.n_slides} Folien` : "Präsentation"}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Card footer */}
