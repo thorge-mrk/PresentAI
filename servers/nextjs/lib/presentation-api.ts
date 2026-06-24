@@ -9,6 +9,9 @@ export interface PresentationRequest {
   gradeLevel: string;
   textDensity: "low" | "compact" | "high";
   slideCount: number;
+  /** Built-in template group id (e.g. "general", "education", "report"). */
+  template?: string;
+  theme?: Record<string, unknown> | null;
 }
 
 export interface SlideOutline {
@@ -41,6 +44,7 @@ export interface PresentationRecord {
   slide_count: number;
   status: string;
   research_data: { summary: string } | null;
+  theme: Record<string, any> | null;
   created_at: string;
 }
 
@@ -132,6 +136,21 @@ export async function searchIcons(
   });
 }
 
+// AI image generation via Gemini ("Nano Banana"); stored in Supabase Storage.
+export async function generateImage(
+  prompt: string
+): Promise<{ url: string; source: "ai" | "stock" }> {
+  return callEdgeFunction("generate-image", { body: { prompt } });
+}
+
+// AI re-edit of a single slide's content (keeps the same layout).
+export async function editSlide(
+  slideId: string,
+  prompt: string
+): Promise<{ slide: PresentationSlide }> {
+  return callEdgeFunction("edit-slide", { body: { slideId, prompt } });
+}
+
 /** Convert Supabase slides → PresentationData format expected by Redux */
 export function slidesToPresentationData(
   presentation: PresentationRecord,
@@ -143,7 +162,11 @@ export function slidesToPresentationData(
     layout: { name: "general", ordered: false, slides: [] },
     n_slides: slides.length,
     title: presentation.topic,
-    theme: null,
+    // The chosen theme is persisted on the presentation; expose it so the
+    // editor/preview/export apply its colors + font via CSS variables.
+    theme: presentation.theme
+      ? { id: (presentation.theme as any).id ?? "custom", name: (presentation.theme as any).name ?? "Custom", data: (presentation.theme as any).data }
+      : null,
     slides: slides.map((s) => ({
       id: s.id,
       index: s.slide_index,

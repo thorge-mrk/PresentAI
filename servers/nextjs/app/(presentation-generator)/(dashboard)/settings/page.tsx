@@ -2,8 +2,8 @@ import React from 'react'
 import SettingPage from './SettingPage'
 
 export const metadata = {
-  title: 'Settings | Presenton',
-  description: 'Settings page',
+  title: 'Einstellungen | Present by Orately AI',
+  description: 'Account-Einstellungen',
 }
 const page = () => {
 

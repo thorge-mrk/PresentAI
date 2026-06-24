@@ -6,15 +6,10 @@ import { supabase } from "@/lib/supabase";
 
 type LogoutButtonProps = {
   label?: string;
-  className?: string;
   iconOnly?: boolean;
 };
 
-export default function LogoutButton({
-  label = "Logout",
-  className = "",
-  iconOnly = false,
-}: LogoutButtonProps) {
+export default function LogoutButton({ label = "Abmelden", iconOnly = false }: LogoutButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogout = async () => {
@@ -23,7 +18,7 @@ export default function LogoutButton({
     try {
       await supabase.auth.signOut();
     } catch {
-      // Always route back to the auth gate even if sign-out fails.
+      // route back regardless
     } finally {
       window.location.replace("/");
     }
@@ -34,12 +29,31 @@ export default function LogoutButton({
       type="button"
       onClick={handleLogout}
       disabled={isSubmitting}
-      className={className}
-      aria-label={label}
-      title={label}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "8px 14px",
+        backgroundColor: "transparent",
+        color: "var(--status-danger)",
+        border: "1px solid var(--status-danger)",
+        borderRadius: 10,
+        fontFamily: "var(--font-family)",
+        fontSize: "0.8125rem",
+        fontWeight: 600,
+        cursor: isSubmitting ? "not-allowed" : "pointer",
+        opacity: isSubmitting ? 0.7 : 1,
+        transition: "background-color var(--dur-fast) var(--ease-out)",
+      }}
+      onMouseEnter={(e) => {
+        if (!isSubmitting) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(212,91,78,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+      }}
     >
-      <LogOut className="h-4 w-4" />
-      {!iconOnly ? <span>{isSubmitting ? "Abmelden…" : label}</span> : null}
+      <LogOut size={14} />
+      {!iconOnly && <span>{isSubmitting ? "Abmelden…" : label}</span>}
     </button>
   );
 }

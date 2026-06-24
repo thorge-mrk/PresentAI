@@ -225,33 +225,18 @@ const ImageEditor = ({
    */
   const handleStockImageSearch = async () => {
     if (!prompt.trim()) {
-      setError("Please enter search keywords");
-      return;
-    }
-    if (!stockImageProvider) return;
-
-    const apiKey =
-      stockImageProvider === "pexels"
-        ? (llmConfig?.PEXELS_API_KEY || "").trim()
-        : (llmConfig?.PIXABAY_API_KEY || "").trim();
-
-    if (!apiKey) {
-      setError(
-        `Add your ${stockImageProvider === "pexels" ? "Pexels" : "Pixabay"} API key in Settings to search stock images.`
-      );
+      setError("Bitte Suchbegriffe eingeben.");
       return;
     }
 
     try {
       setIsSearchingStock(true);
       setError(null);
-      const urls = await ImagesApi.searchStockImages(prompt.trim(), 20, {
-        provider: stockImageProvider,
-        apiKey,
-      });
+      // Cloud version: the Supabase edge function holds the Pexels/Unsplash key.
+      const urls = await ImagesApi.searchStockImages(prompt.trim(), 20);
       setStockSearchResults(urls);
       if (urls.length === 0) {
-        setError("No images found. Try different keywords.");
+        setError("Keine Bilder gefunden. Versuche andere Suchbegriffe.");
       }
     } catch (err: unknown) {
       console.error("Stock image search error", err);
@@ -269,11 +254,7 @@ const ImageEditor = ({
    */
   const handleGenerateImage = async () => {
     if (!prompt) {
-      setError("Please enter a prompt");
-      return;
-    }
-    if (stockImageProvider) {
-      await handleStockImageSearch();
+      setError("Bitte eine Bildbeschreibung eingeben.");
       return;
     }
     try {
@@ -287,7 +268,7 @@ const ImageEditor = ({
       if (response) setPreviewImages(resolveEditorImageSource(response));
     } catch (err: any) {
       console.error("Error in image generation", err);
-      setError(err.message || "Failed to generate image. Please try again.");
+      setError(err.message || "Bild konnte nicht erstellt werden. Bitte erneut versuchen.");
     } finally {
       setIsGenerating(false);
     }
@@ -372,7 +353,7 @@ const ImageEditor = ({
             <Tabs defaultValue="generate" className="w-full" onValueChange={handleTabChange}>
               <TabsList className="grid bg-blue-100 border border-blue-300 w-full grid-cols-3 mx-auto">
                 <TabsTrigger className="font-medium" value="generate">
-                  {stockImageProvider ? "Stock search" : "AI Generate"}
+                  KI & Stock
                 </TabsTrigger>
                 <TabsTrigger className="font-medium" value="upload">
                   Upload
@@ -391,51 +372,67 @@ const ImageEditor = ({
 
                   <div>
                     <h3 className="text-base font-medium mb-2">
-                      {stockImageProvider ? "Search keywords" : "Image Description"}
+                      Bildbeschreibung / Suchbegriffe
                     </h3>
                     <Textarea
-                      placeholder={
-                        stockImageProvider
-                          ? "e.g. team collaboration, modern office, sunset mountains…"
-                          : "Describe the image you want to generate..."
-                      }
+                      placeholder="z.B. Photosynthese in einem grünen Blatt, Querschnitt…"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       className="min-h-[100px]"
                     />
                   </div>
 
-                  <Button
-                    onClick={handleGenerateImage}
-                    className="w-full"
-                    disabled={!prompt.trim() || isGenerating || isSearchingStock}
-                  >
-                    {stockImageProvider ? (
-                      <Search className="w-4 h-4 mr-2" />
-                    ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={handleGenerateImage}
+                      disabled={!prompt.trim() || isGenerating || isSearchingStock}
+                    >
                       <Wand2 className="w-4 h-4 mr-2" />
-                    )}
-                    {stockImageProvider
-                      ? isSearchingStock
-                        ? "Searching…"
-                        : "Search stock images"
-                      : isGenerating
-                        ? "Generating..."
-                        : "Generate Image"}
-                  </Button>
+                      {isGenerating ? "Erstelle…" : "KI-Bild"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleStockImageSearch}
+                      disabled={!prompt.trim() || isGenerating || isSearchingStock}
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      {isSearchingStock ? "Suche…" : "Stockfotos"}
+                    </Button>
+                  </div>
 
                   {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                  {stockImageProvider ? (
+                  {/* AI preview */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">KI-Bild – zum Verwenden anklicken</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {isGenerating ? (
+                        Array.from({ length: 2 }).map((_, index) => (
+                          <Skeleton key={index} className="aspect-[4/3] w-full rounded-lg" />
+                        ))
+                      ) : previewImages ? (
+                        <div
+                          onClick={() => handleImageChange(previewImages)}
+                          className="aspect-[4/3] w-full overflow-hidden rounded-lg border cursor-pointer hover:border-blue-500 transition-colors"
+                        >
+                          <img src={previewImages} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 col-span-2">
+                          Beschreibe ein Bild und klicke auf „KI-Bild“.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stock results */}
+                  {(isSearchingStock || stockSearchResults.length > 0) && (
                     <div className="space-y-3">
-                      <h3 className="text-sm font-medium">Results — click an image to use it</h3>
+                      <h3 className="text-sm font-medium">Stockfotos – zum Verwenden anklicken</h3>
                       <div className="grid grid-cols-2 gap-3">
                         {isSearchingStock
                           ? Array.from({ length: 8 }).map((_, index) => (
-                              <Skeleton
-                                key={index}
-                                className="aspect-[4/3] w-full rounded-lg"
-                              />
+                              <Skeleton key={index} className="aspect-[4/3] w-full rounded-lg" />
                             ))
                           : stockSearchResults.map((url) => (
                               <button
@@ -444,71 +441,11 @@ const ImageEditor = ({
                                 onClick={() => handleImageChange(url)}
                                 className="aspect-[4/3] w-full overflow-hidden rounded-lg border border-gray-200 cursor-pointer hover:border-blue-500 transition-colors text-left p-0 bg-transparent"
                               >
-                                <img
-                                  src={url}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
+                                <img src={url} alt="" className="w-full h-full object-cover" />
                               </button>
                             ))}
                       </div>
-                      {!isSearchingStock && stockSearchResults.length === 0 && (
-                        <p className="text-sm text-gray-500">
-                          Run a search to see thumbnails from{" "}
-                          {stockImageProvider === "pexels" ? "Pexels" : "Pixabay"}.
-                        </p>
-                      )}
                     </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        {isGenerating || !previewImages ? (
-                          Array.from({ length: 4 }).map((_, index) => (
-                            <Skeleton
-                              key={index}
-                              className="aspect-[4/3] w-full rounded-lg"
-                            />
-                          ))
-                        ) : (
-                          <div
-                            onClick={() => handleImageChange(previewImages)}
-                            className="aspect-[4/3] w-full overflow-hidden rounded-lg border cursor-pointer hover:border-blue-500 transition-colors"
-                          >
-                            {previewImages && (
-                              <img
-                                src={previewImages}
-                                alt={`Preview`}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {previousGeneratedImages.length > 0 && (
-                        <div className="mt-4">
-                          <h3 className="text-sm font-medium mb-2">
-                            Previous Generated Images
-                          </h3>
-                          <div className="grid grid-cols-2 gap-4  ">
-                            {previousGeneratedImages.map((image) => (
-                              <div
-                                onClick={() =>
-                                  handleImageChange(resolveEditorImageSource(image))
-                                }
-                                key={image.id}
-                                className="aspect-[4/3] w-full overflow-hidden rounded-lg border cursor-pointer hover:border-blue-500 transition-colors"
-                              >
-                                <img
-                                  src={resolveEditorImageSource(image)}
-                                  alt={image.extras.prompt}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
               </TabsContent>

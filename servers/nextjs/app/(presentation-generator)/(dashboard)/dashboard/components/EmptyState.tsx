@@ -1,22 +1,55 @@
 import React from 'react';
+import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 
 export const EmptyState = () => {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] bg-white/50 rounded-lg">
-            <div className="mb-4">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M42 14.4V33.6C42 40.8 38 44.8 30.8 44.8H17.2C10 44.8 6 40.8 6 33.6V14.4C6 7.2 10 3.2 17.2 3.2H30.8C38 3.2 42 7.2 42 14.4Z" stroke="#667085" strokeWidth="3" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M6.96002 16.4188H41.04" stroke="#667085" strokeWidth="3" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M19.04 3.21875V15.1388" stroke="#667085" strokeWidth="3" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M28.96 3.21875V14.2388" stroke="#667085" strokeWidth="3" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            </div>
-            <h3 className="text-[#101828] text-lg font-roboto font-medium mb-1">
-                You don't have any presentations yet.
-            </h3>
-            <p className="text-[#667085] text-base font-roboto">
-                Start creating the first one.
-            </p>
-        </div>
-    );
-}; 
+  return (
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "40vh",
+      textAlign: "center",
+      padding: "60px 20px",
+    }}>
+      <div style={{
+        width: 72,
+        height: 72,
+        borderRadius: "var(--radius-xl)",
+        backgroundColor: "var(--accent-pale)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 20,
+      }}>
+        <Sparkles size={30} style={{ color: "var(--mint-500)" }} />
+      </div>
+      <h3 style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
+        Noch keine Präsentationen
+      </h3>
+      <p style={{ fontSize: "0.9375rem", color: "var(--text-secondary)", marginBottom: 24, lineHeight: 1.6 }}>
+        Erstelle deine erste KI-Präsentation — in wenigen Minuten.
+      </p>
+      <Link
+        href="/upload"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "11px 20px",
+          backgroundColor: "var(--mint-500)",
+          color: "#fff",
+          borderRadius: "var(--radius-md)",
+          fontWeight: 600,
+          fontSize: "0.875rem",
+          textDecoration: "none",
+          boxShadow: "0 8px 18px -10px rgba(20,184,166,0.65)",
+        }}
+      >
+        <Sparkles size={16} />
+        Neue Präsentation
+      </Link>
+    </div>
+  );
+};

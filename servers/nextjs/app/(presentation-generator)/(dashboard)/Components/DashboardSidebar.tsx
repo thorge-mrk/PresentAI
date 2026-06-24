@@ -1,139 +1,206 @@
 "use client";
 
 import React from "react";
-import { LayoutDashboard, Star, Brain, Settings, Palette, HelpCircle } from "lucide-react";
+import { useTheme } from "next-themes";
+import {
+  LayoutDashboard,
+  Layers,
+  Palette,
+  Settings,
+  Sun,
+  Moon,
+  PlusCircle,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-
-
-export const defaultNavItems = [
-    { key: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
-    { key: "templates" as const, label: "Standard", icon: Star },
-    { key: "designs" as const, label: "Smart", icon: Brain },
-
-
-
+const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/templates", label: "Templates", icon: Layers },
+  { href: "/theme", label: "Themes", icon: Palette },
 ];
-export const BelongingNavItems = [
-    { key: "settings" as const, label: "Settings", icon: Settings },
-]
 
-const DashboardSidebar = () => {
+const bottomItems = [
+  { href: "/settings", label: "Settings", icon: Settings },
+];
 
+export default function DashboardSidebar() {
+  const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
 
-    const pathname = usePathname();
-    const activeTab = pathname.split("?")[0].split("/").pop();
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
 
+  return (
+    <aside
+      style={{
+        width: 80,
+        minWidth: 80,
+        height: "100vh",
+        position: "sticky",
+        top: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "var(--bg-surface)",
+        borderRight: "1px solid var(--bg-muted)",
+        paddingTop: 24,
+        paddingBottom: 24,
+        gap: 0,
+        zIndex: 40,
+        transition: "background-color var(--dur-base) var(--ease-out)",
+      }}
+      aria-label="Main navigation"
+    >
+      {/* Logo */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 28, width: "100%" }}>
+        <Link href="/dashboard" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textDecoration: "none", marginBottom: 8 }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            backgroundColor: "var(--mint-500)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 12px -4px rgba(20,184,166,0.50)",
+          }}>
+            {/* Orately soundwave glyph */}
+            <svg width="26" height="26" viewBox="0 0 200 200" fill="none">
+              <g stroke="#08110F" strokeWidth="22" strokeLinecap="round">
+                <line x1="48"  y1="86"  x2="48"  y2="114" />
+                <line x1="76"  y1="68"  x2="76"  y2="132" />
+                <line x1="104" y1="54"  x2="104" y2="146" />
+                <line x1="132" y1="74"  x2="132" y2="126" />
+                <line x1="158" y1="90"  x2="158" y2="110" />
+              </g>
+            </svg>
+          </div>
+          <span style={{ fontSize: 8, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.04em", lineHeight: 1, textTransform: "uppercase" }}>
+            Present
+          </span>
+        </Link>
 
-
-
-
-    return (
-        <aside
-            className="sticky top-0 h-screen w-[115px] flex flex-col justify-between bg-[#F6F6F9] backdrop-blur border-r border-[#E1E1E5] px-4  py-8"
-            aria-label="Dashboard sidebar"
+        {/* Create new */}
+        <Link
+          href="/upload"
+          title="Neue Präsentation"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
+            textDecoration: "none",
+            padding: "10px 8px",
+            borderRadius: 12,
+            backgroundColor: "var(--accent-pale)",
+            color: "var(--accent)",
+            width: 58,
+            transition: "transform var(--dur-fast) var(--ease-out)",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
         >
-            <div>
+          <PlusCircle size={20} />
+          <span style={{ fontSize: 9, fontWeight: 600, lineHeight: 1 }}>Neu</span>
+        </Link>
 
-                <Link href={`/dashboard`} className="flex items-center  pb-6 border-b border-[#E1E1E5]   gap-2    ">
-                    <div className="bg-[#7C51F8] rounded-full cursor-pointer p-1 flex justify-center items-center mx-auto">
-                        <img src="/logo-with-bg.png" alt="Presenton logo" className="h-[40px] object-contain w-full" />
-                    </div>
-                </Link>
-                <nav className="pt-6 font-syne" aria-label="Dashboard sections">
-                    <div className="  space-y-6">
+        {/* Nav items */}
+        <nav style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: "100%" }}>
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                prefetch={false}
+                href={href}
+                title={label}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "10px 8px",
+                  borderRadius: 12,
+                  width: 58,
+                  textDecoration: "none",
+                  backgroundColor: active ? "var(--accent-pale)" : "transparent",
+                  color: active ? "var(--accent)" : "var(--text-secondary)",
+                  transition: "background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)",
+                }}
+              >
+                <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                <span style={{ fontSize: 9, fontWeight: active ? 600 : 400, lineHeight: 1 }}>{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
 
-                        {/* Dashboard */}
-                        <Link
-                            prefetch={false}
-                            href={`/dashboard`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors",
-                                pathname === "/dashboard" ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label="Dashboard"
-                            title="Dashboard"
-                        >
-                            <LayoutDashboard className={["h-4 w-4", pathname === "/dashboard" ? "text-[#5146E5]" : "text-slate-600"].join(" ")} />
-                            <span className="text-[11px] text-slate-800">Dashboard</span>
-                        </Link>
-                        <Link
-                            prefetch={false}
-                            href={`/templates`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors",
-                                pathname === "/templates" ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label="Templates"
-                            title="Templates"
-                        >
-                            <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={`${pathname === "/templates" ? "#5146E5" : "#475569"}`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M4 14h6" /><path d="M4 2h10" /><rect x="4" y="18" width="16" height="4" rx="1" /><rect x="4" y="6" width="16" height="4" rx="1" /></svg>
-                                <span className="text-[11px] text-slate-800">Templates</span>
-                            </div>
-                        </Link>
-                        <Link
-                            prefetch={false}
-                            href={`/theme`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors",
-                                pathname === "/theme" ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label="Theme"
-                            title="Theme"
-                        >
-                            <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <Palette className={`h-4 w-4 ${pathname === "/theme" ? "text-[#5146E5]" : "text-slate-600"}`} />
-                                <span className="text-[11px] text-slate-800">Themes</span>
-                            </div>
-                        </Link>
-                    </div>
-                </nav>
-            </div>
-
-            <div className=" pt-5 border-t border-[#E1E1E5]  font-syne "
+      {/* Bottom: settings + theme toggle */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: "100%", borderTop: "1px solid var(--bg-muted)", paddingTop: 16 }}>
+        {bottomItems.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          return (
+            <Link
+              key={href}
+              prefetch={false}
+              href={href}
+              title={label}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+                padding: "10px 8px",
+                borderRadius: 12,
+                width: 58,
+                textDecoration: "none",
+                backgroundColor: active ? "var(--accent-pale)" : "transparent",
+                color: active ? "var(--accent)" : "var(--text-secondary)",
+                transition: "background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)",
+              }}
             >
-                <div className="mb-4">
+              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+              <span style={{ fontSize: 9, fontWeight: active ? 600 : 400, lineHeight: 1 }}>{label}</span>
+            </Link>
+          );
+        })}
 
-                    <Link href="https://docs.presenton.ai/help" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><HelpCircle className="w-4 h-4" /><span className="text-[11px] text-slate-800">Help</span></Link>
-                </div>
-                <div className="mb-4">
-
-                    <Link href="https://discord.com/invite/9ZsKKxudNE" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><img src="/discord.png" alt="Discord" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" /><span className="text-[11px] text-slate-800">Community</span></Link>
-                </div>
-
-
-                {BelongingNavItems.map(({ key, label: itemLabel, icon: Icon }) => {
-                    const isActive = activeTab === key;
-                    return (
-                        <Link
-                            prefetch={false}
-                            key={key}
-                            href={`/${key}`}
-                            className={[
-                                "flex flex-col tex-center items-center gap-2  transition-colors ",
-                                isActive ? "" : "ring-transparent",
-                            ].join(" ")}
-                            aria-label={itemLabel}
-                            title={itemLabel}
-                        >
-                            {/* <div className="flex items-center  ">
-                                <img src={imageProviderIcon} alt="image provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
-                                <img src={textProviderIcon} alt="text provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
-                            </div> */}
-                            <Settings className={`h-4 w-4 ${isActive ? "text-[#5146E5]" : "text-slate-600"}`} />
-                            <span className="text-[11px] text-slate-800">{itemLabel}</span>
-                        </Link>
-                    );
-                })}
-
-            </div>
-
-        </aside>
-    );
-};
-
-export default DashboardSidebar;
-
-
+        {/* Dark/light toggle */}
+        <button
+          title={theme === "dark" ? "Zum hellen Modus wechseln" : "Zum dunklen Modus wechseln"}
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
+            padding: "10px 8px",
+            borderRadius: 12,
+            width: 58,
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--text-secondary)",
+            transition: "background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-muted)";
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
+          }}
+        >
+          {theme === "dark" ? <Sun size={20} strokeWidth={1.8} /> : <Moon size={20} strokeWidth={1.8} />}
+          <span style={{ fontSize: 9, fontWeight: 400, lineHeight: 1 }}>
+            {theme === "dark" ? "Hell" : "Dunkel"}
+          </span>
+        </button>
+      </div>
+    </aside>
+  );
+}

@@ -2,7 +2,7 @@
  * Presentation generation API — now backed by Supabase Edge Functions.
  * The FastAPI backend has been removed; all calls go directly to Supabase.
  */
-import { searchImages as edgeSearchImages, searchIcons as edgeSearchIcons, savePresentation } from "@/lib/presentation-api";
+import { searchImages as edgeSearchImages, searchIcons as edgeSearchIcons, savePresentation, generateImage as edgeGenerateImage, editSlide as edgeEditSlide } from "@/lib/presentation-api";
 import { IconSearch, ImageSearch } from "./params";
 
 export class PresentationGenerationApi {
@@ -32,18 +32,29 @@ export class PresentationGenerationApi {
     return data.icons;
   }
 
-  // Kept for backwards compat with any callers — now a no-op that throws clearly
-  static async generateImage(_params: any) {
-    throw new Error("AI image generation removed. Use searchStockImages instead.");
+  // AI image generation via Gemini ("Nano Banana") → returns a stored image URL.
+  static async generateImage(params: { prompt: string }): Promise<string> {
+    const { url } = await edgeGenerateImage(params.prompt);
+    return url;
   }
 
   static async getPreviousGeneratedImages() {
     return [];
   }
 
-  // Inline slide editing (replaces FastAPI /slide/edit)
-  static async editSlide(_slideId: string, _prompt: string) {
-    throw new Error("AI slide re-editing not yet implemented in cloud version.");
+  // Inline AI slide editing → Supabase edge function "edit-slide".
+  // Maps the DB row back into the Redux slide shape used by the editor.
+  static async editSlide(slideId: string, prompt: string) {
+    const { slide } = await edgeEditSlide(slideId, prompt);
+    return {
+      id: slide.id,
+      index: slide.slide_index,
+      layout: slide.layout,
+      layout_group: slide.layout_group,
+      speaker_note: slide.speaker_notes || "",
+      properties: {},
+      content: slide.content || {},
+    };
   }
 
   // Auto-save: persist edited slide content to Supabase.

@@ -10,54 +10,63 @@ interface PresentationGridProps {
   onPresentationDeleted?: (presentationId: string) => void;
 }
 
+const ShimmerCard = () => (
+  <div style={{
+    minHeight: 200,
+    borderRadius: "var(--radius-xl)",
+    border: "1px solid var(--bg-muted)",
+    backgroundColor: "var(--bg-surface)",
+    overflow: "hidden",
+    animation: "pulse 1.5s ease-in-out infinite",
+  }}>
+    <div style={{ height: 130, backgroundColor: "var(--bg-muted)", margin: "12px 12px 0" , borderRadius: 8 }} />
+    <div style={{ padding: "12px 16px", borderTop: "1px solid var(--bg-muted)", marginTop: 12 }}>
+      <div style={{ height: 14, width: 120, backgroundColor: "var(--bg-muted)", borderRadius: 6, marginBottom: 8 }} />
+      <div style={{ height: 11, width: 80, backgroundColor: "var(--bg-muted)", borderRadius: 6 }} />
+    </div>
+  </div>
+);
+
 export const PresentationGrid = ({
   presentations,
   isLoading = false,
   error = null,
   onPresentationDeleted,
 }: PresentationGridProps) => {
-  const ShimmerCard = () => (
-    <div className="flex min-h-[216px] flex-col overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-[#F8FBFB] shadow-none animate-pulse">
-      <div className="relative flex-1 overflow-hidden p-4">
-        <img
-          src="/card_bg.svg"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-70"
-        />
-        <div className="relative mx-auto mt-2 aspect-video w-[88%] rounded-lg border border-gray-200 bg-gray-200" />
-      </div>
-      <div className="relative z-10 border-t border-[#EDEEEF] bg-white px-5 py-3">
-        <div className="flex items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="h-3.5 w-24 rounded bg-gray-200" />
-            <div className="h-3 w-16 rounded bg-gray-200" />
-          </div>
-          <div className="h-5 w-1 rounded-full bg-gray-200" />
-        </div>
-      </div>
-    </div>
-  );
-
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 w-full">
-        {[...Array(12)].map((_, i) => (
-          <ShimmerCard key={i} />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 w-full">
+        {[...Array(8)].map((_, i) => <ShimmerCard key={i} />)}
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-[#EDEEEF] bg-white/80">
-        <div className="text-center text-gray-500">
-          <p className="mb-2">{error}</p>
+      <div style={{
+        minHeight: 200,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "var(--radius-xl)",
+        border: "1px solid var(--bg-muted)",
+        backgroundColor: "var(--bg-surface)",
+      }}>
+        <div style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+          <p style={{ marginBottom: 8 }}>{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="text-primary hover:text-primary/80 underline"
+            style={{
+              color: "var(--mint-500)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "var(--font-family)",
+              fontWeight: 600,
+              textDecoration: "underline",
+            }}
           >
-            Try again
+            Erneut versuchen
           </button>
         </div>
       </div>
@@ -69,7 +78,7 @@ export const PresentationGrid = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
       {presentations.map((presentation) => (
         <PresentationCard
           key={presentation.id}

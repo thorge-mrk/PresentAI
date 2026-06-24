@@ -14,6 +14,7 @@ interface Body {
   textDensity?: "low" | "compact" | "high";
   slideCount?: number;
   template?: string;
+  theme?: Record<string, unknown> | null;
 }
 
 interface OutlineItem {
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
         text_density: textDensity,
         slide_count: outlines.length,
         template,
+        theme: body.theme ?? null,
         status: "outlined",
         research_data: { summary: result.researchSummary ?? "" },
       })

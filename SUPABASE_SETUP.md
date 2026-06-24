@@ -38,7 +38,13 @@ Dashboard → **Project Settings → Edge Functions → Secrets** (oder
 | `GEMINI_API_KEY` | ✅ | Google AI Studio → API Key (https://aistudio.google.com/apikey) |
 | `PEXELS_API_KEY` | ✅ | https://www.pexels.com/api/ |
 | `UNSPLASH_ACCESS_KEY` | optional | https://unsplash.com/developers (Fallback für Bilder) |
-| `GEMINI_MODEL` | optional | Standard: `gemini-2.5-flash` |
+| `GEMINI_MODEL` | optional | Standard: `gemini-3.1-flash-lite` (Text) |
+| `GEMINI_IMAGE_MODEL` | optional | Standard: `gemini-3.1-flash-image` („Nano Banana 2", KI-Bilder) |
+
+> **Wichtig:** Der `GEMINI_API_KEY` braucht Zugriff auf `gemini-3.1-flash-lite`
+> **und** `gemini-3.1-flash-image`. Ist ein Modell für deinen Key (noch) nicht
+> verfügbar, überschreibe `GEMINI_MODEL` / `GEMINI_IMAGE_MODEL` mit einem
+> verfügbaren Modell (z.B. `gemini-2.5-flash` bzw. `gemini-2.5-flash-image`).
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` und `SUPABASE_SERVICE_ROLE_KEY` werden von
 Supabase automatisch in die Functions injiziert — die musst du **nicht** setzen.
@@ -113,20 +119,34 @@ Ohne diese Secrets nutzt der Build sichere Platzhalter und läuft trotzdem durch
 4. **search-images / search-icons** — Suche im Editor.
 5. **presentation-chat** — KI-Assistent (Gemini), beantwortet Fragen und schlägt
    Verbesserungen zur Präsentation vor.
+6. **generate-image** — erzeugt mit Gemini („Nano Banana") ein Bild aus einem
+   Prompt, legt es im `uploads`-Bucket ab und gibt die URL zurück. Fällt bei
+   Bedarf automatisch auf ein Stockfoto (Pexels/Unsplash) zurück.
+7. **edit-slide** — überarbeitet eine einzelne Folie per KI gemäß Nutzer-Prompt
+   (behält das Layout bei, hydratisiert Medien neu).
 
-Alle 8 Functions verlangen ein gültiges Login (`verify_jwt`); die teuren
-(`generate-outline`, `approve-outline`, `search-images`, `presentation-chat`)
-zusätzlich die Allowlist.
+Alle Functions verlangen ein gültiges Login (`verify_jwt`); die teuren
+(`generate-outline`, `approve-outline`, `search-images`, `presentation-chat`,
+`generate-image`, `edit-slide`) zusätzlich die Allowlist.
+
+### Stil-Auswahl (Themes für Schüler)
+Beim Erstellen wählt man einen **Design-Stil** + optionale **Akzentfarbe**
+(`servers/nextjs/lib/student-themes.ts`). Der Stil wird auf der Präsentation
+(`presentations.theme`, jsonb) gespeichert, als CSS-Variablen auf die Folien
+angewendet (Editor, Vorschau, PDF, PPTX) und Gemini in der Generierung als
+Tonfall-/Bildmotiv-Hinweis mitgegeben.
 
 ### Feature-Status (Cloud-Version)
 - ✅ Erstellen → Gliederung → Generieren → Ansehen
+- ✅ Stil- & Farbauswahl (schülerfreundliche Themes)
 - ✅ Dashboard (Liste / Öffnen / Löschen)
-- ✅ Folien inline bearbeiten + Auto-Save
-- ✅ Bild- & Icon-Suche, eigener Bild-Upload (Storage)
-- ✅ Export: PPTX (Download) & PDF (Druckansicht → „Als PDF speichern")
+- ✅ Folien inline bearbeiten + Auto-Save + KI-Folienbearbeitung (`edit-slide`)
+- ✅ Bild- & Icon-Suche, KI-Bildgenerierung (Nano Banana), eigener Upload (Storage)
+- ✅ Export: PPTX (Download, themenfarbig) & PDF (Druckansicht → „Als PDF speichern")
 - ✅ KI-Chat-Assistent zur Präsentation
+- ⏳ Vorbereitet, noch nicht fertig: native Flutter-App (`flutter_app/`).
 - ⏳ Nicht portiert (Upstream-Reste, in der Cloud nicht nötig): Multi-Provider-
-  Auswahl (OpenAI/Ollama/Codex), eigene Themes/Fonts, Custom-Template-Builder.
+  Auswahl (OpenAI/Ollama/Codex), Custom-Template-Builder.
   Diese Panels zeigen klare Hinweise statt Fehler.
 
 ---

@@ -27,6 +27,7 @@ import { RootState } from "@/store/store";
 import { notify } from "@/components/ui/sonner";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePresentationUndoRedo } from "../hooks/PresentationUndoRedo";
+import { exportPptxFromDom, exportPdfFromDom } from "@/lib/export-slides";
 import ToolTip from "@/components/ToolTip";
 import {
   clearPresentationData,
@@ -229,48 +230,10 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pptx", safePptxTitle);
       } else {
-        const findImg = (o: any): string | undefined => {
-          if (!o || typeof o !== "object") return undefined;
-          if (typeof o.__image_url__ === "string") return o.__image_url__;
-          for (const v of Object.values(o)) {
-            const r = findImg(v);
-            if (r) return r;
-          }
-          return undefined;
-        };
-        const slidesPayload = (presentationData?.slides || []).map((s: any) => {
-          const c = s.content || {};
-          return {
-            title: c.title || c.heading || "",
-            body_text: c.description || c.body_text || "",
-            content: c,
-            image_url: findImg(c),
-            speaker_notes: s.speaker_note || "",
-            slide_index: s.index,
-          };
-        });
-        const response = await fetch("/api/export/pptx", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: safePptxTitle,
-            slides: slidesPayload,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to export PPTX");
-        }
-
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = safePptxFileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        // 1:1 export: capture each rendered slide (real template + theme) and
+        // assemble the PPTX from those images.
+        const indices = (presentationData?.slides || []).map((s: any) => s.index);
+        await exportPptxFromDom(indices, safePptxFileName);
       }
       notify.success(
         "Export complete",
@@ -317,22 +280,9 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pdf", safePdfTitle);
       } else {
-        const response = await fetch("/api/export/pdf", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ presentationId: presentation_id }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const printUrl =
-            data.url || `/presentation?id=${presentation_id}&print=true`;
-          // Opens a clean view in a new tab; the browser's "Save as PDF"
-          // print dialog produces the PDF.
-          window.open(printUrl, "_blank");
-        } else {
-          throw new Error("Failed to export PDF");
-        }
+        // 1:1 export: capture each rendered slide and print one image per page.
+        const indices = (presentationData?.slides || []).map((s: any) => s.index);
+        await exportPdfFromDom(indices, safePdfTitle);
       }
       notify.success(
         "Export complete",
@@ -492,16 +442,25 @@ const PresentationHeader = ({
 
   return (
     <>
-      <div className="py-[18px] px-4 sticky top-0 bg-white z-50 shadow-sm font-syne flex justify-between items-center gap-4">
+      <div className="py-[18px] px-4 sticky top-0 z-50 shadow-sm flex justify-between items-center gap-4" style={{ backgroundColor: "var(--bg-surface)", borderBottom: "1px solid var(--bg-muted)" }}>
         <div className="flex items-center gap-3">
-          <img
-            onClick={() => {
-              router.push("/dashboard");
+          <div
+            onClick={() => { router.push("/dashboard"); }}
+            style={{
+              width: 36, height: 36, borderRadius: 10, backgroundColor: "var(--mint-500)",
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
             }}
-            src="/logo-with-bg.png"
-            alt=""
-            className="w-10 h-10 cursor-pointer object-contain"
-          />
+          >
+            <svg width="20" height="20" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g stroke="#08110F" strokeWidth="72" strokeLinecap="round">
+                <line x1="96" y1="220" x2="96" y2="292"/>
+                <line x1="192" y1="160" x2="192" y2="352"/>
+                <line x1="288" y1="112" x2="288" y2="400"/>
+                <line x1="384" y1="172" x2="384" y2="340"/>
+                <line x1="460" y1="222" x2="460" y2="290"/>
+              </g>
+            </svg>
+          </div>
           {presentationData && !isStreaming && !isEditingTitle ? (
             <ToolTip content="Rename presentation">{titleBlock}</ToolTip>
           ) : (
