@@ -9,7 +9,7 @@ import { getUser, HttpError, requireAllowed } from "../_shared/auth.ts";
 import { serviceClient } from "../_shared/clients.ts";
 import { geminiJSON } from "../_shared/gemini.ts";
 import { hydrateMedia } from "../_shared/media.ts";
-import { layoutShapeJSON } from "../_shared/layout-catalog.ts";
+import { layoutShapeJSON, loadCatalog } from "../_shared/layout-catalog.ts";
 
 interface Body {
   slideId?: string;
@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
     const owner = (slide as Record<string, any>).presentations?.user_id;
     if (owner !== user.id) throw new HttpError(403, "Kein Zugriff auf diese Folie.");
 
+    await loadCatalog();
     const shape = layoutShapeJSON(slide.layout);
     const promptText = [
       `Du überarbeitest EINE Folie einer Präsentation zum Thema "${slide.presentations.topic}".`,

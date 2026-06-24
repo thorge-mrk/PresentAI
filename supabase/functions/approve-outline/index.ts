@@ -14,6 +14,7 @@ import {
   DEFAULT_GROUP,
   groupRoles,
   isKnownGroup,
+  loadCatalog,
   normalizeLayoutId,
 } from "../_shared/layout-catalog.ts";
 
@@ -62,6 +63,9 @@ Deno.serve(async (req) => {
       .eq("presentation_id", presentationId)
       .order("slide_index", { ascending: true });
     if (oErr || !outlines?.length) throw new HttpError(400, "Keine Gliederung vorhanden.");
+
+    // Load extra template groups from app_config before resolving the catalog.
+    await loadCatalog();
 
     const density = DENSITY_HINT[presentation.text_density] ?? DENSITY_HINT.compact;
     const research = presentation.research_data?.summary ?? "";
