@@ -123,7 +123,7 @@ const SlideContent = ({
     }
   };
   useEffect(() => {
-    if (slide.layout.includes("custom")) {
+    if (slide?.layout?.includes("custom")) {
       const existingScript = document.querySelector(
         'script[src*="tailwindcss.com"]'
       );

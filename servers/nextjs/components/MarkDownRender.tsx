@@ -15,6 +15,10 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
 
     useEffect(() => {
         const parseMarkdown = async () => {
+            if (content == null || content === "") {
+                setMarkdownContent("");
+                return;
+            }
             try {
                 const parsed = await marked.parse(content);
                 setMarkdownContent(parsed);
