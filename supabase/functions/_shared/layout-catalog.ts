@@ -19,6 +19,9 @@ const IMG = { __image_prompt__: "string 10-50 chars, english image search query"
 const ICON = { __icon_query__: "string 3-6 words, english icon search query" };
 export const TEMPLATE_NAME = "general";
 export const DEFAULT_GROUP = "general";
+// Pseudo-group: lets the model pick from EVERY template family for maximum
+// variety ("Smart" mode). Not a real entry in GROUPS — handled explicitly.
+export const SMART_GROUP = "smart";
 
 export const GENERAL_LAYOUTS: LayoutDef[] = [
   { id: "general:general-intro-slide", name: "Intro Slide", description: "Title slide. Use as the FIRST slide. Title, short description, presenter info and a supporting image.", shape: { title: "string 3-40 chars", description: "string 10-150 chars", presenterName: "string", presentationDate: "string", image: IMG } },
@@ -60,10 +63,21 @@ export async function loadCatalog(): Promise<void> {
 export function listGroups(): { id: string; count: number }[] {
   return Object.entries(GROUPS).map(([id, layouts]) => ({ id, count: layouts.length }));
 }
+export function isSmartGroup(groupId: string | undefined | null): boolean {
+  return groupId === SMART_GROUP;
+}
 export function isKnownGroup(groupId: string | undefined | null): boolean {
+  if (isSmartGroup(groupId)) return true;
   return !!groupId && Object.prototype.hasOwnProperty.call(GROUPS, groupId);
 }
+/** Every layout across every loaded group — the "smart" catalog. */
+export function smartLayouts(): Layout[] {
+  const all: Layout[] = [];
+  for (const layouts of Object.values(GROUPS)) all.push(...layouts);
+  return all;
+}
 function group(groupId: string | undefined | null): Layout[] {
+  if (isSmartGroup(groupId)) return smartLayouts();
   return (groupId && GROUPS[groupId]) || GROUPS[DEFAULT_GROUP];
 }
 /** Detect the intro/cover and table-of-contents layouts of a group, for ordering. */
@@ -96,11 +110,20 @@ export function layoutShapeJSON(id: string): string {
 }
 /** Coerce a model-provided layout id into a valid id within the given group. */
 export function normalizeLayoutId(raw: string | undefined, groupId: string = DEFAULT_GROUP): string {
-  const ids = new Set(group(groupId).map((l) => l.id));
+  const layouts = group(groupId);
+  const ids = new Set(layouts.map((l) => l.id));
   if (!raw) return defaultLayoutId(groupId);
-  let id = raw.trim();
-  if (!id.includes(":")) id = `${groupId}:${id}`;
-  return ids.has(id) ? id : defaultLayoutId(groupId);
+  const id = raw.trim();
+  if (ids.has(id)) return id;
+  // Smart mode: the catalog spans every family, so a bare/unqualified id
+  // ("basic-info-slide") should match the first layout whose id ends with it.
+  if (isSmartGroup(groupId)) {
+    const suffix = id.includes(":") ? id.split(":").pop()! : id;
+    const match = layouts.find((l) => l.id === id || l.id.endsWith(`:${suffix}`));
+    return match ? match.id : defaultLayoutId(groupId);
+  }
+  const qualified = id.includes(":") ? id : `${groupId}:${id}`;
+  return ids.has(qualified) ? qualified : defaultLayoutId(groupId);
 }
 
 // Back-compat (general group).

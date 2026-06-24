@@ -15,6 +15,7 @@ interface Body {
   slideCount?: number;
   template?: string;
   theme?: Record<string, unknown> | null;
+  documentContext?: string;
 }
 
 interface OutlineItem {
@@ -51,6 +52,8 @@ Deno.serve(async (req) => {
     const textDensity = body.textDensity ?? "compact";
     const slideCount = Math.min(Math.max(body.slideCount ?? 10, 1), 25);
     const template = body.template ?? "general";
+    // Source material the user uploaded (extracted client-side). Cap defensively.
+    const documentContext = (body.documentContext ?? "").trim().slice(0, 16000);
 
     const prompt = [
       `Du bist ein Experte für didaktisch hochwertige Präsentationen.`,
@@ -60,9 +63,15 @@ Deno.serve(async (req) => {
       `Zielgruppe / Niveau: ${gradeLevel}`,
       `Folienanzahl: genau ${slideCount} Folien.`,
       `Textmenge: ${DENSITY_HINT[textDensity] ?? DENSITY_HINT.compact}`,
+      documentContext
+        ? `\nQUELLDOKUMENTE des Nutzers (nutze diese vorrangig als faktische Grundlage; gib ihren Inhalt korrekt wieder, erfinde nichts Widersprüchliches):\n"""\n${documentContext}\n"""\n`
+        : ``,
       ``,
       `Anforderungen:`,
       `- Antworte in der Sprache des Themas (bei deutschem Thema auf Deutsch).`,
+      documentContext
+        ? `- Stütze Gliederung und "researchSummary" primär auf die Quelldokumente oben.`
+        : ``,
       `- Folie 1 ist die Titelfolie, Folie 2  idealerweise eine Agenda/Inhaltsübersicht, die letzte Folie ein Fazit/Zusammenfassung.`,
       `- Baue einen logischen roten Faden auf, der zum Niveau der Zielgruppe passt.`,
       `- "visualDescription" beschreibt kurz (auf Englisch, 10-50 Zeichen) ein passendes Bildmotiv für die Folie.`,
@@ -96,7 +105,10 @@ Deno.serve(async (req) => {
         template,
         theme: body.theme ?? null,
         status: "outlined",
-        research_data: { summary: result.researchSummary ?? "" },
+        research_data: {
+          summary: result.researchSummary ?? "",
+          documentContext: documentContext || null,
+        },
       })
       .select()
       .single();
